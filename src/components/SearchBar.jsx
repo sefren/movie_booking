@@ -1,17 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
-import { useDebounce } from '../hooks/useDebounce';
-import { API_CONFIG } from '../utils/constants';
+import React, { useState, useEffect } from "react";
+import { Search, X } from "lucide-react";
+import { useDebounce } from "../hooks/useDebounce";
+import { API_CONFIG } from "../utils/constants";
 
 const SearchBar = ({
   onSearch,
   placeholder = "Search movies...",
   initialValue = "",
   className = "",
-  showClearButton = true
+  showClearButton = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState(initialValue);
   const [isFocused, setIsFocused] = useState(false);
+
+  // Sync with external value changes
+  useEffect(() => {
+    setSearchTerm(initialValue);
+  }, [initialValue]);
 
   // Debounce the search term
   const debouncedSearchTerm = useDebounce(searchTerm, API_CONFIG.debounceDelay);
@@ -21,21 +26,21 @@ const SearchBar = ({
     if (onSearch) {
       onSearch(debouncedSearchTerm);
     }
-  }, [debouncedSearchTerm, onSearch]);
+  }, [debouncedSearchTerm]);
 
   const handleInputChange = (e) => {
     setSearchTerm(e.target.value);
   };
 
   const handleClear = () => {
-    setSearchTerm('');
+    setSearchTerm("");
     if (onSearch) {
-      onSearch('');
+      onSearch("");
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       handleClear();
       e.target.blur();
     }
@@ -43,14 +48,18 @@ const SearchBar = ({
 
   return (
     <div className={`relative ${className}`}>
-      <div className={`relative transition-all duration-200 ${
-        isFocused ? 'ring-2 ring-primary-900 ring-offset-2' : ''
-      }`}>
+      <div
+        className={`relative transition-all duration-200 ${
+          isFocused ? "ring-2 ring-primary-900 ring-offset-2" : ""
+        }`}
+      >
         {/* Search Icon */}
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className={`h-4 w-4 transition-colors duration-200 ${
-            isFocused ? 'text-primary-900' : 'text-primary-400'
-          }`} />
+          <Search
+            className={`h-4 w-4 transition-colors duration-200 ${
+              isFocused ? "text-primary-900" : "text-primary-400"
+            }`}
+          />
         </div>
 
         {/* Input Field */}
@@ -63,7 +72,7 @@ const SearchBar = ({
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
           className={`block w-full pl-10 pr-10 py-3 border border-primary-200 bg-white text-primary-900 placeholder-primary-400 focus:outline-none focus:border-transparent text-sm transition-all duration-200 ${
-            isFocused ? 'bg-primary-50/30' : 'hover:border-primary-300'
+            isFocused ? "bg-primary-50/30" : "hover:border-primary-300"
           }`}
         />
 

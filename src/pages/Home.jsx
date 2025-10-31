@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import MovieCard from "../components/MovieCard";
 import SearchBar from "../components/SearchBar";
 import FilterBar from "../components/FilterBar";
@@ -18,14 +18,14 @@ import {
 import { useDebounce } from "../hooks/useDebounce";
 import { API_CONFIG } from "../utils/constants";
 
-const Home = () => {
+const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
   // State
   const [activeTab, setActiveTab] = useState("now_playing"); // "now_playing" or "upcoming"
   const [movies, setMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(headerSearchQuery);
   const [activeGenre, setActiveGenre] = useState(null);
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
@@ -36,6 +36,11 @@ const Home = () => {
     searchQuery,
     API_CONFIG.debounceDelay,
   );
+
+  // Sync with header search
+  useEffect(() => {
+    setSearchQuery(headerSearchQuery);
+  }, [headerSearchQuery]);
 
   // Check backend availability on mount
   useEffect(() => {
@@ -123,23 +128,35 @@ const Home = () => {
   }, [activeGenre, movies]);
 
   // Handle search
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    setUpcomingPage(1);
-  };
+  const handleSearch = useCallback(
+    (query) => {
+      setSearchQuery(query);
+      setUpcomingPage(1);
+      if (onHeaderSearchChange) {
+        onHeaderSearchChange(query);
+      }
+    },
+    [onHeaderSearchChange],
+  );
 
   // Handle tab change
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    setSearchQuery("");
-    setActiveGenre(null);
-    setUpcomingPage(1);
-  };
+  const handleTabChange = useCallback(
+    (tab) => {
+      setActiveTab(tab);
+      setSearchQuery("");
+      setActiveGenre(null);
+      setUpcomingPage(1);
+      if (onHeaderSearchChange) {
+        onHeaderSearchChange("");
+      }
+    },
+    [onHeaderSearchChange],
+  );
 
   // Handle genre filter
-  const handleGenreChange = (genreId) => {
+  const handleGenreChange = useCallback((genreId) => {
     setActiveGenre(genreId);
-  };
+  }, []);
 
   // Handle load more for upcoming
   const handleLoadMore = () => {
@@ -149,10 +166,13 @@ const Home = () => {
   };
 
   // Clear all filters
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchQuery("");
     setActiveGenre(null);
-  };
+    if (onHeaderSearchChange) {
+      onHeaderSearchChange("");
+    }
+  }, [onHeaderSearchChange]);
 
   // Loading skeleton
   const LoadingSkeleton = () => (
