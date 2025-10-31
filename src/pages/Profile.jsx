@@ -24,7 +24,7 @@ import { getUserBookings, updateUserProfile } from "../utils/authApi";
 import { getImageUrl } from "../utils/api";
 
 const Profile = () => {
-  const { user, isAuthenticated, updateUser, logout } = useAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);

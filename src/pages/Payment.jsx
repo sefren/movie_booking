@@ -11,6 +11,7 @@ import {
   Clock,
   MapPin,
   Users,
+  Film,
 } from "lucide-react";
 import { getImageUrl } from "../utils/api";
 import { confirmBooking } from "../utils/backendApi";
@@ -444,17 +445,29 @@ const Payment = () => {
 
             {/* Movie Info */}
             <div className="flex space-x-4 mb-6">
-              <img
-                src={posterUrl}
-                alt={bookingData.movie.title}
-                className="w-16 h-24 object-cover border border-primary-200"
-                onError={(e) => {
-                  e.target.src = "/placeholder-movie-poster.jpg";
-                }}
-              />
+              {posterUrl ? (
+                <img
+                  src={posterUrl}
+                  alt={
+                    bookingData.movie?.title ||
+                    bookingData.movieId?.title ||
+                    "Movie"
+                  }
+                  className="w-16 h-24 object-cover border border-primary-200"
+                  onError={(e) => {
+                    e.target.src = "/placeholder-movie-poster.jpg";
+                  }}
+                />
+              ) : (
+                <div className="w-16 h-24 bg-primary-100 flex items-center justify-center border border-primary-200">
+                  <Film className="h-6 w-6 text-primary-400" />
+                </div>
+              )}
               <div className="flex-1">
                 <h4 className="font-medium text-primary-900 mb-2">
-                  {bookingData.movie.title}
+                  {bookingData.movie?.title ||
+                    bookingData.movieId?.title ||
+                    "Movie"}
                 </h4>
                 <div className="space-y-1 text-sm text-primary-600">
                   <div className="flex items-center space-x-1">
@@ -475,7 +488,14 @@ const Payment = () => {
                   </div>
                   <div className="flex items-center space-x-1">
                     <Users className="w-3 h-3" />
-                    <span>Seats: {bookingData.seats.join(", ")}</span>
+                    <span>
+                      Seats:{" "}
+                      {Array.isArray(bookingData.seats)
+                        ? bookingData.seats
+                            .map((s) => (typeof s === "string" ? s : s.seatId))
+                            .join(", ")
+                        : ""}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -489,7 +509,9 @@ const Payment = () => {
                 </span>
                 <span className="text-primary-900">
                   {THEATER_CONFIG.currencySymbol}
-                  {bookingData.total.toFixed(2)}
+                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(
+                    2,
+                  )}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -502,7 +524,9 @@ const Payment = () => {
                 <span className="text-primary-900">Total</span>
                 <span className="text-primary-900">
                   {THEATER_CONFIG.currencySymbol}
-                  {bookingData.total.toFixed(2)}
+                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(
+                    2,
+                  )}
                 </span>
               </div>
             </div>
@@ -525,7 +549,11 @@ const Payment = () => {
                       <Lock className="w-4 h-4" />
                       <span>
                         Pay {THEATER_CONFIG.currencySymbol}
-                        {bookingData.total.toFixed(2)}
+                        {(
+                          bookingData.total ||
+                          bookingData.totalAmount ||
+                          0
+                        ).toFixed(2)}
                       </span>
                     </>
                   )}

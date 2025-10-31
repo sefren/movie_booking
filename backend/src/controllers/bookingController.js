@@ -130,6 +130,7 @@ export const confirmBooking = async (req, res, next) => {
     booking.paymentStatus = "success";
     booking.transactionId = transactionId;
     booking.completedAt = new Date();
+    booking.lockedUntil = undefined; // Remove lock expiry for confirmed bookings
     await booking.save();
 
     res.status(200).json({

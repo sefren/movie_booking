@@ -206,8 +206,14 @@ const Confirmation = () => {
                     <div>
                       <p className="text-sm text-primary-600">Seats</p>
                       <p className="font-medium text-primary-900">
-                        {booking.seats.join(", ")} ({booking.seats.length}{" "}
-                        tickets)
+                        {Array.isArray(booking.seats)
+                          ? booking.seats
+                              .map((s) =>
+                                typeof s === "string" ? s : s.seatId,
+                              )
+                              .join(", ")
+                          : ""}{" "}
+                        ({booking.seats.length} tickets)
                       </p>
                     </div>
                   </div>
@@ -255,7 +261,7 @@ const Confirmation = () => {
                       </span>
                       <span className="text-primary-900">
                         {THEATER_CONFIG.currencySymbol}
-                        {booking.total.toFixed(2)}
+                        {(booking.total || booking.totalAmount || 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -268,7 +274,7 @@ const Confirmation = () => {
                       <span className="text-primary-900">Total Paid</span>
                       <span className="text-primary-900">
                         {THEATER_CONFIG.currencySymbol}
-                        {booking.total.toFixed(2)}
+                        {(booking.total || booking.totalAmount || 0).toFixed(2)}
                       </span>
                     </div>
                   </div>
