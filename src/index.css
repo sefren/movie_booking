@@ -1,0 +1,165 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@layer base {
+    * {
+        border-color: #e2e8f0;
+    }
+
+    body {
+        @apply bg-white text-primary-900 font-sans;
+        font-feature-settings:
+            "rlig" 1,
+            "calt" 1;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply bg-primary-900 text-white px-6 py-3 text-sm font-medium tracking-wide border border-primary-900 transition-all duration-200 hover:bg-white hover:text-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:ring-offset-2;
+    }
+
+    .btn-secondary {
+        @apply bg-white text-primary-900 px-6 py-3 text-sm font-medium tracking-wide border border-primary-200 transition-all duration-200 hover:border-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:ring-offset-2;
+    }
+
+    .input-field {
+        @apply w-full px-4 py-3 text-sm border border-primary-200 bg-white placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-transparent transition-all duration-200;
+    }
+
+    .card {
+        @apply bg-white border border-primary-100 p-6 transition-all duration-200;
+    }
+
+    .text-heading {
+        @apply text-primary-900 font-semibold tracking-tight;
+    }
+
+    .text-body {
+        @apply text-primary-700 leading-relaxed;
+    }
+
+    .text-muted {
+        @apply text-primary-500;
+    }
+
+    .divider {
+        @apply border-t border-primary-100;
+    }
+
+    .seat-available {
+        @apply bg-accent-500 border border-primary-200 hover:bg-primary-100 cursor-pointer transition-all duration-150;
+    }
+
+    .seat-selected {
+        @apply bg-primary-900 border border-primary-900 text-white;
+    }
+
+    .seat-occupied {
+        @apply bg-primary-300 border border-primary-300 cursor-not-allowed;
+    }
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    .animate-pulse-subtle {
+        animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse-subtle {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.8;
+        }
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Loading state */
+.loading-shimmer {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Remove default focus styles for custom focus rings */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+}
+
+/* Ensure images load smoothly */
+img {
+    @apply transition-opacity duration-300;
+}
+
+img[data-loaded="false"] {
+    @apply opacity-0;
+}
+
+img[data-loaded="true"] {
+    @apply opacity-100;
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
