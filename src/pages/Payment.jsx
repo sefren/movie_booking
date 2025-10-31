@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { getImageUrl } from "../utils/api";
+import { confirmBooking } from "../utils/backendApi";
 import { THEATER_CONFIG, PAYMENT_STATUS } from "../utils/constants";
 
 const Payment = () => {
@@ -128,19 +129,36 @@ const Payment = () => {
 
     try {
       // Simulate payment processing delay
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Simulate random success/failure (80% success rate)
-      const isSuccess = Math.random() > 0.2;
+      // Simulate random success/failure (90% success rate for demo)
+      const isSuccess = Math.random() > 0.1;
 
       if (isSuccess) {
+        const transactionId = `TXN${Date.now()}${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+        // If booking has backend ID, confirm with backend
+        if (bookingData.bookingId && bookingData.bookingId.startsWith("BK")) {
+          try {
+            console.log(
+              "Confirming booking with backend:",
+              bookingData.bookingId,
+            );
+            await confirmBooking(bookingData.bookingId, transactionId);
+            console.log("✅ Booking confirmed with backend");
+          } catch (error) {
+            console.error("Failed to confirm booking with backend:", error);
+            // Continue anyway for demo purposes
+          }
+        }
+
         setPaymentStatus(PAYMENT_STATUS.SUCCESS);
 
         // Store successful booking
         const completedBooking = {
           ...bookingData,
           paymentStatus: PAYMENT_STATUS.SUCCESS,
-          transactionId: `TXN${Date.now()}`,
+          transactionId,
           completedAt: new Date().toISOString(),
         };
 

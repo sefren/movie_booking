@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMovieDetails } from "../hooks/useMovies";
 import SeatGrid from "../components/SeatGrid";
@@ -15,6 +15,14 @@ import {
 } from "lucide-react";
 import { getImageUrl } from "../utils/api";
 import {
+  fetchMovieById,
+  fetchMovieShowtimes,
+  fetchOccupiedSeats,
+  createBooking,
+  formatShowtime,
+  checkBackendHealth,
+} from "../utils/backendApi";
+import {
   THEATER_CONFIG,
   SHOW_TIMES,
   VALIDATION_RULES,
@@ -28,7 +36,7 @@ const Booking = () => {
 
   // Booking state
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const [selectedShowtime, setSelectedShowtime] = useState(SHOW_TIMES[0]);
+  const [selectedShowtime, setSelectedShowtime] = useState(null);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -40,21 +48,78 @@ const Booking = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Generate some occupied seats for demo
-  const [occupiedSeats] = useState([
-    "A3",
-    "A4",
-    "B5",
-    "B6",
-    "C1",
-    "C2",
-    "C8",
-    "D10",
-    "D11",
-    "E3",
-    "E4",
-    "E5",
-  ]);
+  // Backend data
+  const [useBackend, setUseBackend] = useState(true);
+  const [backendMovie, setBackendMovie] = useState(null);
+  const [showtimes, setShowtimes] = useState([]);
+  const [occupiedSeats, setOccupiedSeats] = useState([]);
+  const [showtimesLoading, setShowtimesLoading] = useState(false);
+
+  // Check backend availability and fetch movie
+  useEffect(() => {
+    const checkAndFetch = async () => {
+      const isAvailable = await checkBackendHealth();
+      setUseBackend(isAvailable);
+
+      if (isAvailable && id) {
+        try {
+          const movieData = await fetchMovieById(id);
+          setBackendMovie(movieData);
+        } catch (error) {
+          console.error("Failed to fetch movie from backend:", error);
+          setUseBackend(false);
+        }
+      }
+    };
+    checkAndFetch();
+  }, [id]);
+
+  // Fetch showtimes when date changes
+  useEffect(() => {
+    const loadShowtimes = async () => {
+      if (!useBackend || !id) return;
+
+      setShowtimesLoading(true);
+      try {
+        const showtimeData = await fetchMovieShowtimes(id, selectedDate);
+        const formatted = showtimeData.showtimes.map(formatShowtime);
+        setShowtimes(formatted);
+
+        // Auto-select first showtime
+        if (formatted.length > 0 && !selectedShowtime) {
+          setSelectedShowtime(formatted[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch showtimes:", error);
+        setShowtimes([]);
+      } finally {
+        setShowtimesLoading(false);
+      }
+    };
+
+    loadShowtimes();
+  }, [id, selectedDate, useBackend]);
+
+  // Fetch occupied seats when showtime changes
+  useEffect(() => {
+    const loadOccupiedSeats = async () => {
+      if (!useBackend || !id || !selectedShowtime) return;
+
+      try {
+        const occupied = await fetchOccupiedSeats(
+          id,
+          selectedDate,
+          selectedShowtime.id,
+        );
+        setOccupiedSeats(occupied);
+      } catch (error) {
+        console.error("Failed to fetch occupied seats:", error);
+        setOccupiedSeats([]);
+      }
+    };
+
+    loadOccupiedSeats();
+  }, [id, selectedDate, selectedShowtime, useBackend]);
 
   // Generate available dates (next 7 days)
   const getAvailableDates = () => {
@@ -75,6 +140,19 @@ const Booking = () => {
   };
 
   const availableDates = getAvailableDates();
+
+  // Get available showtimes for selected date
+  const getAvailableShowtimes = () => {
+    if (useBackend) {
+      return showtimes;
+    }
+    // Fallback to constant showtimes
+    return SHOW_TIMES.map((time) => ({
+      time,
+      screenName: "Screen 1",
+      screenType: "Standard",
+    }));
+  };
 
   // Handle seat selection
   const handleSeatSelect = (seatId, isSelecting) => {
@@ -158,29 +236,77 @@ const Booking = () => {
     setIsProcessing(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      let bookingData;
 
-      // Store booking data for payment page
-      const bookingData = {
-        movie: {
-          id: movie.id,
-          title: movie.title,
-          poster_path: movie.poster_path,
-          runtime: movie.runtime,
-        },
-        showtime: selectedShowtime,
-        date: selectedDate,
-        seats: selectedSeats,
-        customerInfo: bookingForm,
-        total: calculateTotal(),
-        bookingId: `BK${Date.now()}`,
-      };
+      if (useBackend && selectedShowtime?.id) {
+        // Use backend API for real booking
+        const seats = selectedSeats.map((seatId) => {
+          const row = seatId.charAt(0);
+          const number = parseInt(seatId.substring(1));
+          return { seatId, row, number };
+        });
+
+        const bookingRequest = {
+          movieId: id,
+          screenId: selectedShowtime.screenId?._id || selectedShowtime.screenId,
+          showtime: {
+            time: selectedShowtime.time,
+            date: new Date(selectedDate),
+          },
+          seats,
+          customerInfo: bookingForm,
+          totalAmount: calculateTotal(),
+        };
+
+        const createdBooking = await createBooking(bookingRequest);
+
+        // Store booking data for payment page
+        bookingData = {
+          bookingId: createdBooking.bookingId,
+          _id: createdBooking._id,
+          movie: {
+            id: backendMovie?._id || id,
+            title: backendMovie?.title || movie?.title,
+            poster_path: backendMovie?.posterPath || movie?.poster_path,
+            runtime: backendMovie?.duration || movie?.runtime,
+          },
+          showtime: selectedShowtime,
+          date: selectedDate,
+          seats: selectedSeats,
+          customerInfo: bookingForm,
+          total: calculateTotal(),
+          status: createdBooking.status,
+          lockedUntil: createdBooking.lockedUntil,
+        };
+
+        console.log("✅ Booking created with backend:", bookingData);
+      } else {
+        // Fallback to mock booking
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        bookingData = {
+          movie: {
+            id: movie?.id,
+            title: movie?.title,
+            poster_path: movie?.poster_path,
+            runtime: movie?.runtime,
+          },
+          showtime: selectedShowtime,
+          date: selectedDate,
+          seats: selectedSeats,
+          customerInfo: bookingForm,
+          total: calculateTotal(),
+          bookingId: `BK${Date.now()}`,
+        };
+
+        console.log("⚠️ Mock booking created (backend unavailable)");
+      }
 
       localStorage.setItem("currentBooking", JSON.stringify(bookingData));
       navigate("/payment");
-    } catch {
-      alert(ERROR_MESSAGES.bookingFailed);
+    } catch (error) {
+      console.error("Booking failed:", error);
+      alert(error.message || ERROR_MESSAGES.bookingFailed);
     } finally {
       setIsProcessing(false);
     }
@@ -216,7 +342,10 @@ const Booking = () => {
     );
   }
 
-  const posterUrl = getImageUrl(movie.poster_path, "poster", "medium");
+  const posterUrl =
+    useBackend && backendMovie
+      ? getImageUrl(backendMovie.posterPath, "poster", "large")
+      : getImageUrl(movie?.poster_path, "poster", "large");
 
   return (
     <div className="min-h-screen bg-white">
@@ -332,23 +461,51 @@ const Booking = () => {
               {/* Time Selection */}
               <div>
                 <label className="block text-sm font-medium text-primary-700 mb-3">
-                  Showtime
+                  Showtime {useBackend && showtimesLoading && "(Loading...)"}
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                  {SHOW_TIMES.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedShowtime(time)}
-                      className={`p-3 text-sm font-medium border transition-all duration-200 ${
-                        selectedShowtime === time
-                          ? "bg-primary-900 text-white border-primary-900"
-                          : "bg-white text-primary-600 border-primary-200 hover:border-primary-900"
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
+                {useBackend && showtimes.length === 0 && !showtimesLoading ? (
+                  <p className="text-primary-500 text-sm p-4 bg-primary-50 border border-primary-200">
+                    No showtimes available for this date
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {useBackend
+                      ? showtimes.map((showtime) => (
+                          <button
+                            key={showtime.id}
+                            onClick={() => setSelectedShowtime(showtime)}
+                            className={`p-4 text-left border transition-all duration-200 ${
+                              selectedShowtime?.id === showtime.id
+                                ? "bg-primary-900 text-white border-primary-900"
+                                : "bg-white text-primary-600 border-primary-200 hover:border-primary-900"
+                            }`}
+                          >
+                            <div className="font-semibold text-base mb-1">
+                              {showtime.time}
+                            </div>
+                            <div className="text-xs opacity-80">
+                              {showtime.screenName} • {showtime.screenType}
+                            </div>
+                            <div className="text-xs opacity-70 mt-1">
+                              {showtime.availableSeats} seats available
+                            </div>
+                          </button>
+                        ))
+                      : SHOW_TIMES.map((time) => (
+                          <button
+                            key={time}
+                            onClick={() => setSelectedShowtime({ time })}
+                            className={`p-3 text-sm font-medium border transition-all duration-200 ${
+                              selectedShowtime?.time === time
+                                ? "bg-primary-900 text-white border-primary-900"
+                                : "bg-white text-primary-600 border-primary-200 hover:border-primary-900"
+                            }`}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                  </div>
+                )}
               </div>
             </div>
 

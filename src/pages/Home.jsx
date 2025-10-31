@@ -10,6 +10,11 @@ import {
   filterMoviesByGenre,
   formatMovieData,
 } from "../utils/api";
+import {
+  fetchMoviesFromBackend,
+  formatBackendMovie,
+  checkBackendHealth,
+} from "../utils/backendApi";
 import { useDebounce } from "../hooks/useDebounce";
 import { API_CONFIG } from "../utils/constants";
 
@@ -24,6 +29,7 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
   const [activeGenre, setActiveGenre] = useState(null);
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
+  const [useBackend, setUseBackend] = useState(true);
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(
@@ -38,6 +44,20 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
     }
   }, [externalSearchQuery]);
 
+  // Check backend availability on mount
+  useEffect(() => {
+    const checkBackend = async () => {
+      const isAvailable = await checkBackendHealth();
+      setUseBackend(isAvailable);
+      if (isAvailable) {
+        console.log("✅ Using backend API for movies");
+      } else {
+        console.log("⚠️ Backend unavailable, using TMDB/mock data");
+      }
+    };
+    checkBackend();
+  }, []);
+
   // Fetch movies based on active tab
   useEffect(() => {
     const loadMovies = async () => {
@@ -46,32 +66,58 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
 
       try {
         let result;
+        let formattedMovies;
 
-        if (debouncedSearchQuery.trim()) {
-          // Search mode - searches through all theater movies
-          result = await searchMovies(debouncedSearchQuery);
-        } else if (activeTab === "now_playing") {
-          // Now Playing - single page, all movies at once
-          result = await fetchNowPlayingMovies();
+        if (useBackend) {
+          // Use backend API
+          const params = {
+            status: activeTab,
+            search: debouncedSearchQuery.trim() || undefined,
+            page: activeTab === "upcoming" ? upcomingPage : 1,
+            limit: 20,
+          };
+
+          const backendMovies = await fetchMoviesFromBackend(params);
+
+          if (Array.isArray(backendMovies)) {
+            formattedMovies = backendMovies.map(formatBackendMovie);
+          } else {
+            formattedMovies = [];
+          }
+
+          setHasMoreUpcoming(false); // Backend handles all pagination
         } else {
-          // Upcoming - with pagination
-          result = await fetchUpcomingMovies(upcomingPage);
-          setHasMoreUpcoming(result.total_pages > upcomingPage);
+          // Fallback to TMDB/mock data
+          if (debouncedSearchQuery.trim()) {
+            result = await searchMovies(debouncedSearchQuery);
+          } else if (activeTab === "now_playing") {
+            result = await fetchNowPlayingMovies();
+          } else {
+            result = await fetchUpcomingMovies(upcomingPage);
+            setHasMoreUpcoming(result.total_pages > upcomingPage);
+          }
+
+          formattedMovies = result.results.map(formatMovieData);
         }
 
-        const formattedMovies = result.results.map(formatMovieData);
         setMovies(formattedMovies);
         setFilteredMovies(formattedMovies);
       } catch (err) {
         console.error("Failed to load movies:", err);
         setError(err.message || "Failed to load movies. Please try again.");
+
+        // If backend fails, try fallback
+        if (useBackend) {
+          console.log("Backend failed, switching to fallback...");
+          setUseBackend(false);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadMovies();
-  }, [activeTab, debouncedSearchQuery, upcomingPage]);
+  }, [activeTab, debouncedSearchQuery, upcomingPage, useBackend]);
 
   // Apply genre filter (client-side filtering)
   useEffect(() => {
@@ -198,6 +244,11 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
             <p className="text-xl text-primary-600 max-w-2xl mx-auto">
               Book your tickets for movies in theaters
             </p>
+            {useBackend && (
+              <p className="text-sm text-green-600 mt-2">
+                ✅ Connected to backend - Real-time data
+              </p>
+            )}
           </div>
         </div>
       </div>
