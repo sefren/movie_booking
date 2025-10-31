@@ -13,12 +13,9 @@ import Confirmation from "./pages/Confirmation";
 import { useState } from "react";
 
 function AppContent() {
-  const location = useLocation();
-  const isHomePage = location.pathname === "/";
-
   return (
     <div className="min-h-screen bg-white">
-      <Header showSearch={isHomePage} />
+      <Header showSearch={true} />
 
       <main>
         <Routes>

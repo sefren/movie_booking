@@ -54,11 +54,6 @@ const Home = () => {
   // Fetch movies based on active tab
   useEffect(() => {
     const loadMovies = async () => {
-      console.log("Loading movies...", {
-        activeTab,
-        debouncedSearchQuery,
-        useBackend,
-      });
       setLoading(true);
       setError(null);
 
@@ -75,15 +70,11 @@ const Home = () => {
             limit: 20,
           };
 
-          console.log("Fetching from backend with params:", params);
           const backendMovies = await fetchMoviesFromBackend(params);
-          console.log("Backend response:", backendMovies);
 
           if (Array.isArray(backendMovies)) {
             formattedMovies = backendMovies.map(formatBackendMovie);
-            console.log("Formatted backend movies:", formattedMovies.length);
           } else {
-            console.error("Backend did not return array:", backendMovies);
             formattedMovies = [];
           }
 
@@ -100,10 +91,8 @@ const Home = () => {
           }
 
           formattedMovies = result.results.map(formatMovieData);
-          console.log("Formatted TMDB movies:", formattedMovies.length);
         }
 
-        console.log("Setting movies:", formattedMovies.length);
         setMovies(formattedMovies);
         setFilteredMovies(formattedMovies);
       } catch (err) {
@@ -125,14 +114,8 @@ const Home = () => {
 
   // Apply genre filter (client-side filtering)
   useEffect(() => {
-    console.log("Applying genre filter:", {
-      activeGenre,
-      totalMovies: movies.length,
-    });
     if (activeGenre) {
       const filtered = filterMoviesByGenre(movies, activeGenre);
-      console.log("Filtered movies by genre:", filtered.length);
-      console.log("Sample movie genreIds:", movies[0]?.genreIds);
       setFilteredMovies(filtered);
     } else {
       setFilteredMovies(movies);
