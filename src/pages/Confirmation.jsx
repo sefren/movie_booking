@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   CheckCircle,
   Calendar,
@@ -9,10 +9,10 @@ import {
   Download,
   Share2,
   Home,
-  Film
-} from 'lucide-react';
-import { getImageUrl } from '../utils/api';
-import { THEATER_CONFIG } from '../utils/constants';
+  Film,
+} from "lucide-react";
+import { getImageUrl } from "../utils/api";
+import { THEATER_CONFIG } from "../utils/constants";
 
 const Confirmation = () => {
   const navigate = useNavigate();
@@ -21,39 +21,40 @@ const Confirmation = () => {
 
   useEffect(() => {
     // Get booking data from navigation state or localStorage
-    const bookingData = location.state?.booking ||
-      JSON.parse(localStorage.getItem('bookingHistory') || '[]').slice(-1)[0];
+    const bookingData =
+      location.state?.booking ||
+      JSON.parse(localStorage.getItem("bookingHistory") || "[]").slice(-1)[0];
 
     if (bookingData) {
       setBooking(bookingData);
     } else {
       // Redirect if no booking data
-      navigate('/', { replace: true });
+      navigate("/", { replace: true });
     }
   }, [location.state, navigate]);
 
   const handleDownloadTicket = () => {
     // Simulate ticket download
-    alert('Ticket download feature will be implemented with PDF generation');
+    alert("Ticket download feature will be implemented with PDF generation");
   };
 
   const handleShareBooking = () => {
     // Simulate sharing
     if (navigator.share) {
       navigator.share({
-        title: 'Movie Booking Confirmation',
+        title: "Movie Booking Confirmation",
         text: `I just booked tickets for ${booking.movie.title}!`,
-        url: window.location.href
+        url: window.location.href,
       });
     } else {
       // Fallback - copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      alert('Booking link copied to clipboard!');
+      alert("Booking link copied to clipboard!");
     }
   };
 
   const handleBookAnother = () => {
-    navigate('/');
+    navigate("/");
   };
 
   if (!booking) {
@@ -61,9 +62,13 @@ const Confirmation = () => {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <Film className="w-12 h-12 text-primary-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-primary-900 mb-2">No booking found</h3>
-          <p className="text-primary-600 mb-4">Unable to load booking confirmation.</p>
-          <button onClick={() => navigate('/')} className="btn-primary">
+          <h3 className="text-lg font-medium text-primary-900 mb-2">
+            No booking found
+          </h3>
+          <p className="text-primary-600 mb-4">
+            Unable to load booking confirmation.
+          </p>
+          <button onClick={() => navigate("/")} className="btn-primary">
             Back to Movies
           </button>
         </div>
@@ -71,7 +76,7 @@ const Confirmation = () => {
     );
   }
 
-  const posterUrl = getImageUrl(booking.movie.poster_path, 'poster', 'medium');
+  const posterUrl = getImageUrl(booking.movie.poster_path, "poster", "medium");
 
   return (
     <div className="min-h-screen bg-primary-50">
@@ -95,12 +100,18 @@ const Confirmation = () => {
           <div className="bg-primary-50 px-6 py-4 border-b border-primary-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-primary-900">Booking Details</h2>
-                <p className="text-primary-600 mt-1">Booking ID: {booking.bookingId}</p>
+                <h2 className="text-xl font-semibold text-primary-900">
+                  Booking Details
+                </h2>
+                <p className="text-primary-600 mt-1">
+                  Booking ID: {booking.bookingId}
+                </p>
               </div>
               <div className="mt-3 sm:mt-0">
                 <p className="text-sm text-primary-600">Transaction ID</p>
-                <p className="font-medium text-primary-900">{booking.transactionId}</p>
+                <p className="font-medium text-primary-900">
+                  {booking.transactionId}
+                </p>
               </div>
             </div>
           </div>
@@ -116,7 +127,7 @@ const Confirmation = () => {
                     alt={booking.movie.title}
                     className="w-24 h-36 object-cover border border-primary-200"
                     onError={(e) => {
-                      e.target.src = '/placeholder-movie-poster.jpg';
+                      e.target.src = "/placeholder-movie-poster.jpg";
                     }}
                   />
                   <div className="flex-1">
@@ -126,7 +137,9 @@ const Confirmation = () => {
                     {booking.movie.runtime && (
                       <div className="flex items-center space-x-1 text-primary-600 mb-2">
                         <Clock className="w-4 h-4" />
-                        <span className="text-sm">{booking.movie.runtime} minutes</span>
+                        <span className="text-sm">
+                          {booking.movie.runtime} minutes
+                        </span>
                       </div>
                     )}
                     <div className="text-sm text-primary-600">
@@ -142,11 +155,11 @@ const Confirmation = () => {
                     <div>
                       <p className="text-sm text-primary-600">Date</p>
                       <p className="font-medium text-primary-900">
-                        {new Date(booking.date).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
+                        {new Date(booking.date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
                         })}
                       </p>
                     </div>
@@ -156,7 +169,9 @@ const Confirmation = () => {
                     <Clock className="w-5 h-5 text-primary-600" />
                     <div>
                       <p className="text-sm text-primary-600">Show Time</p>
-                      <p className="font-medium text-primary-900">{booking.showtime}</p>
+                      <p className="font-medium text-primary-900">
+                        {booking.showtime?.time || booking.showtime}
+                      </p>
                     </div>
                   </div>
 
@@ -164,8 +179,12 @@ const Confirmation = () => {
                     <MapPin className="w-5 h-5 text-primary-600" />
                     <div>
                       <p className="text-sm text-primary-600">Cinema</p>
-                      <p className="font-medium text-primary-900">Cinema Multiplex</p>
-                      <p className="text-sm text-primary-600">Theater 1, Screen 1</p>
+                      <p className="font-medium text-primary-900">
+                        Cinema Multiplex
+                      </p>
+                      <p className="text-sm text-primary-600">
+                        Theater 1, Screen 1
+                      </p>
                     </div>
                   </div>
 
@@ -174,7 +193,8 @@ const Confirmation = () => {
                     <div>
                       <p className="text-sm text-primary-600">Seats</p>
                       <p className="font-medium text-primary-900">
-                        {booking.seats.join(', ')} ({booking.seats.length} tickets)
+                        {booking.seats.join(", ")} ({booking.seats.length}{" "}
+                        tickets)
                       </p>
                     </div>
                   </div>
@@ -185,41 +205,57 @@ const Confirmation = () => {
               <div className="space-y-6">
                 {/* Customer Information */}
                 <div>
-                  <h4 className="text-lg font-semibold text-primary-900 mb-3">Customer Information</h4>
+                  <h4 className="text-lg font-semibold text-primary-900 mb-3">
+                    Customer Information
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="text-primary-600">Name: </span>
-                      <span className="font-medium text-primary-900">{booking.customerInfo.name}</span>
+                      <span className="font-medium text-primary-900">
+                        {booking.customerInfo.name}
+                      </span>
                     </div>
                     <div>
                       <span className="text-primary-600">Email: </span>
-                      <span className="font-medium text-primary-900">{booking.customerInfo.email}</span>
+                      <span className="font-medium text-primary-900">
+                        {booking.customerInfo.email}
+                      </span>
                     </div>
                     <div>
                       <span className="text-primary-600">Phone: </span>
-                      <span className="font-medium text-primary-900">{booking.customerInfo.phone}</span>
+                      <span className="font-medium text-primary-900">
+                        {booking.customerInfo.phone}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Payment Summary */}
                 <div>
-                  <h4 className="text-lg font-semibold text-primary-900 mb-3">Payment Summary</h4>
+                  <h4 className="text-lg font-semibold text-primary-900 mb-3">
+                    Payment Summary
+                  </h4>
                   <div className="bg-primary-50 border border-primary-200 p-4 space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-primary-600">Tickets ({booking.seats.length})</span>
+                      <span className="text-primary-600">
+                        Tickets ({booking.seats.length})
+                      </span>
                       <span className="text-primary-900">
-                        {THEATER_CONFIG.currencySymbol}{booking.total.toFixed(2)}
+                        {THEATER_CONFIG.currencySymbol}
+                        {booking.total.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-primary-600">Booking Fee</span>
-                      <span className="text-primary-900">{THEATER_CONFIG.currencySymbol}0.00</span>
+                      <span className="text-primary-900">
+                        {THEATER_CONFIG.currencySymbol}0.00
+                      </span>
                     </div>
                     <div className="flex justify-between font-semibold text-lg border-t border-primary-200 pt-2">
                       <span className="text-primary-900">Total Paid</span>
                       <span className="text-primary-900">
-                        {THEATER_CONFIG.currencySymbol}{booking.total.toFixed(2)}
+                        {THEATER_CONFIG.currencySymbol}
+                        {booking.total.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -231,7 +267,9 @@ const Confirmation = () => {
 
                 {/* Important Information */}
                 <div className="bg-yellow-50 border border-yellow-200 p-4">
-                  <h5 className="font-medium text-yellow-900 mb-2">Important Information</h5>
+                  <h5 className="font-medium text-yellow-900 mb-2">
+                    Important Information
+                  </h5>
                   <ul className="text-sm text-yellow-800 space-y-1">
                     <li> Please arrive 15 minutes before show time</li>
                     <li> Bring a valid ID for verification</li>
@@ -279,7 +317,8 @@ const Confirmation = () => {
             A confirmation email has been sent to {booking.customerInfo.email}
           </p>
           <p className="text-sm text-primary-500 mt-2">
-            For any queries, please contact customer support or visit the cinema counter.
+            For any queries, please contact customer support or visit the cinema
+            counter.
           </p>
         </div>
       </div>
