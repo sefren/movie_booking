@@ -13,10 +13,16 @@ import {
   Edit,
   Save,
   X,
+  CreditCard,
+  Download,
+  Eye,
+  RefreshCw,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserBookings, updateUserProfile } from "../utils/authApi";
 import { getImageUrl } from "../utils/api";
+</parameter>
 
 const Profile = () => {
   const { user, isAuthenticated, updateUser, logout } = useAuth();
@@ -30,6 +36,16 @@ const Profile = () => {
     phone: user?.phone || "",
   });
   const [updateLoading, setUpdateLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update timer every second for pending bookings
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -93,6 +109,33 @@ const Profile = () => {
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
+  };
+
+  const getTimeRemaining = (lockedUntil) => {
+    if (!lockedUntil) return null;
+    const expiry = new Date(lockedUntil);
+    const diff = expiry - currentTime;
+
+    if (diff <= 0) return "Expired";
+
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const handleCompletePayment = (booking) => {
+    // Store booking data and navigate to payment
+    localStorage.setItem("currentBooking", JSON.stringify(booking));
+    navigate("/payment");
+  };
+
+  const handleViewTicket = (booking) => {
+    navigate("/confirmation", { state: { booking } });
+  };
+
+  const handleRetry = (booking) => {
+    // Navigate back to booking page with pre-selected seats
+    navigate(`/movie/${booking.movieId._id || booking.movieId}`);
   };
 
   if (loading) {
@@ -237,89 +280,148 @@ const Profile = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {bookings.map((booking) => (
-                <div
-                  key={booking._id}
-                  className="border border-primary-200 p-4 hover:border-primary-300 transition-colors"
-                >
-                  <div className="flex flex-col md:flex-row gap-4">
-                    {/* Movie Poster */}
-                    <div className="flex-shrink-0">
-                      <div className="w-24 h-36 bg-primary-100">
-                        {booking.movieId?.posterPath ? (
-                          <img
-                            src={getImageUrl(
-                              booking.movieId.posterPath,
-                              "poster",
-                              "small"
-                            )}
-                            alt={booking.movieId?.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Ticket className="h-8 w-8 text-primary-400" />
+              {bookings.map((booking) => {
+                const timeRemaining = booking.status === "pending" ? getTimeRemaining(booking.lockedUntil) : null;
+                const isExpired = timeRemaining === "Expired";
+
+                return (
+                  <div
+                    key={booking._id}
+                    className="border border-primary-200 p-4 hover:border-primary-300 transition-colors"
+                  >
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {/* Movie Poster */}
+                      <div className="flex-shrink-0">
+                        <div className="w-24 h-36 bg-primary-100">
+                          {booking.movieId?.posterPath ? (
+                            <img
+                              src={getImageUrl(
+                                booking.movieId.posterPath,
+                                "poster",
+                                "small"
+                              )}
+                              alt={booking.movieId?.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Ticket className="h-8 w-8 text-primary-400" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Booking Details */}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-primary-900">
+                              {booking.movieId?.title || "Movie"}
+                            </h3>
+                            <p className="text-sm text-primary-600">
+                              Booking ID: {booking.bookingId}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Booking Details */}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold text-primary-900">
-                            {booking.movieId?.title || "Movie"}
-                          </h3>
-                          <p className="text-sm text-primary-600">
-                            Booking ID: {booking.bookingId}
-                          </p>
-                        </div>
-                        <span
-                          className={`px-3 py-1 text-xs font-medium border ${getStatusColor(
-                            booking.status
-                          )}`}
-                        >
-                          {booking.status?.toUpperCase()}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <div className="flex items-center space-x-2 text-primary-600">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDate(booking.showtime?.date)}</span>
+                          <div className="text-right">
+                            <span
+                              className={`inline-block px-3 py-1 text-xs font-medium border ${getStatusColor(
+                                booking.status
+                              )}`}
+                            >
+                              {booking.status?.toUpperCase()}
+                            </span>
+                            {booking.status === "pending" && timeRemaining && !isExpired && (
+                              <p className="text-xs text-yellow-600 mt-1">
+                                Expires in: {timeRemaining}
+                              </p>
+                            )}
+                            {isExpired && (
+                              <p className="text-xs text-red-600 mt-1">
+                                Payment expired
+                              </p>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 text-primary-600">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatTime(booking.showtime?.time)}</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center space-x-2 text-primary-600">
+                            <Calendar className="w-4 h-4" />
+                            <span>{formatDate(booking.showtime?.date)}</span>
+                          </div>
+
+                          <div className="flex items-center space-x-2 text-primary-600">
+                            <Clock className="w-4 h-4" />
+                            <span>{formatTime(booking.showtime?.time)}</span>
+                          </div>
+
+                          <div className="flex items-center space-x-2 text-primary-600">
+                            <MapPin className="w-4 h-4" />
+                            <span>
+                              {booking.screenId?.name} ({booking.screenId?.screenType})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center space-x-2 text-primary-600">
+                            <Ticket className="w-4 h-4" />
+                            <span>
+                              Seats: {booking.seats?.map((s) => s.seatId).join(", ")}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 text-primary-600">
-                          <MapPin className="w-4 h-4" />
-                          <span>
-                            {booking.screenId?.name} ({booking.screenId?.screenType})
+                        <div className="flex items-center justify-between pt-2 border-t border-primary-100">
+                          <span className="text-sm text-primary-600">Total Amount:</span>
+                          <span className="text-lg font-bold text-primary-900">
+                            ${booking.totalAmount?.toFixed(2)}
                           </span>
                         </div>
 
-                        <div className="flex items-center space-x-2 text-primary-600">
-                          <Ticket className="w-4 h-4" />
-                          <span>
-                            Seats: {booking.seats?.map((s) => s.seatId).join(", ")}
-                          </span>
-                        </div>
-                      </div>
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {booking.status === "confirmed" && (
+                            <>
+                              <button
+                                onClick={() => handleViewTicket(booking)}
+                                className="flex items-center space-x-2 px-4 py-2 bg-primary-900 text-white hover:bg-primary-800 text-sm"
+                              >
+                                <Eye className="w-4 h-4" />
+                                <span>View Ticket</span>
+                              </button>
+                              <button
+                                onClick={() => alert("Download feature coming soon")}
+                                className="flex items-center space-x-2 px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-50 text-sm"
+                              >
+                                <Download className="w-4 h-4" />
+                                <span>Download</span>
+                              </button>
+                            </>
+                          )}
 
-                      <div className="flex items-center justify-between pt-2 border-t border-primary-100">
-                        <span className="text-sm text-primary-600">Total Amount:</span>
-                        <span className="text-lg font-bold text-primary-900">
-                          ${booking.totalAmount?.toFixed(2)}
-                        </span>
+                          {booking.status === "pending" && !isExpired && (
+                            <button
+                              onClick={() => handleCompletePayment(booking)}
+                              className="flex items-center space-x-2 px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-700 text-sm"
+                            >
+                              <CreditCard className="w-4 h-4" />
+                              <span>Complete Payment</span>
+                            </button>
+                          )}
+
+                          {(booking.status === "cancelled" || isExpired) && (
+                            <button
+                              onClick={() => handleRetry(booking)}
+                              className="flex items-center space-x-2 px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-50 text-sm"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              <span>Book Again</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
