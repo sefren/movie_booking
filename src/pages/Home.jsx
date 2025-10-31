@@ -62,9 +62,9 @@ const Home = () => {
         let formattedMovies;
 
         if (useBackend) {
-          // Use backend API
+          // Use backend API - search within current tab only (now_playing OR upcoming)
           const params = {
-            status: activeTab,
+            status: activeTab, // Restricts search to active tab
             search: debouncedSearchQuery.trim() || undefined,
             page: activeTab === "upcoming" ? upcomingPage : 1,
             limit: 20,

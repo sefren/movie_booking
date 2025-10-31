@@ -60,9 +60,11 @@ const Header = ({ showSearch = true }) => {
         let results = [];
 
         if (useBackend) {
+          // Header search is GLOBAL - searches all movies (both now_playing AND upcoming)
           const params = {
             search: debouncedSearchQuery.trim(),
             limit: 5,
+            // No 'status' parameter = search across all movies
           };
           const backendMovies = await fetchMoviesFromBackend(params);
           results = Array.isArray(backendMovies)
