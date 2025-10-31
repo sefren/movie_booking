@@ -3,8 +3,13 @@ import { Link } from "react-router-dom";
 import { Search, User, Menu, X } from "lucide-react";
 import { useState } from "react";
 
-const Header = ({ onSearchChange, searchQuery }) => {
+const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+  };
 
   return (
     <header className="bg-white border-b border-primary-100 sticky top-0 z-50">
@@ -20,22 +25,20 @@ const Header = ({ onSearchChange, searchQuery }) => {
           </div>
 
           {/* Search Bar - Desktop */}
-          {onSearchChange && (
-            <div className="hidden md:block flex-1 max-w-md mx-8">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-primary-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search movies..."
-                  value={searchQuery || ""}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-primary-200 bg-white text-primary-900 placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-transparent text-sm"
-                />
+          <div className="hidden md:block flex-1 max-w-md mx-8">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-primary-400" />
               </div>
+              <input
+                type="text"
+                placeholder="Search movies..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-primary-200 bg-white text-primary-900 placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-transparent text-sm"
+              />
             </div>
-          )}
+          </div>
 
           {/* Right Side */}
           <div className="flex items-center space-x-4">
@@ -63,22 +66,20 @@ const Header = ({ onSearchChange, searchQuery }) => {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-primary-100 py-4 animate-fade-in">
             {/* Mobile Search */}
-            {onSearchChange && (
-              <div className="px-4 pb-4">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-primary-400" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search movies..."
-                    value={searchQuery || ""}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-primary-200 bg-white text-primary-900 placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-transparent text-sm"
-                  />
+            <div className="px-4 pb-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-primary-400" />
                 </div>
+                <input
+                  type="text"
+                  placeholder="Search movies..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-primary-200 bg-white text-primary-900 placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-transparent text-sm"
+                />
               </div>
-            )}
+            </div>
 
             {/* Mobile Profile */}
             <nav className="space-y-1">

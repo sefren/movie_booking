@@ -8,28 +8,14 @@ import Confirmation from "./pages/Confirmation";
 import { useState } from "react";
 
 function App() {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const handleSearchChange = (query) => {
-    setSearchQuery(query);
-  };
-
   return (
     <Router>
       <div className="min-h-screen bg-white">
-        <Header onSearchChange={handleSearchChange} searchQuery={searchQuery} />
+        <Header />
 
         <main>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <Home
-                  searchQuery={searchQuery}
-                  onSearchChange={handleSearchChange}
-                />
-              }
-            />
+            <Route path="/" element={<Home />} />
             <Route path="/movie/:id" element={<Booking />} />
             <Route path="/booking/:id" element={<Booking />} />
             <Route path="/payment" element={<Payment />} />

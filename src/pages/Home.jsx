@@ -18,7 +18,7 @@ import {
 import { useDebounce } from "../hooks/useDebounce";
 import { API_CONFIG } from "../utils/constants";
 
-const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
+const Home = () => {
   // State
   const [activeTab, setActiveTab] = useState("now_playing"); // "now_playing" or "upcoming"
   const [movies, setMovies] = useState([]);
@@ -36,13 +36,6 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
     searchQuery,
     API_CONFIG.debounceDelay,
   );
-
-  // Sync external search query
-  useEffect(() => {
-    if (externalSearchQuery !== undefined) {
-      setSearchQuery(externalSearchQuery);
-    }
-  }, [externalSearchQuery]);
 
   // Check backend availability on mount
   useEffect(() => {
@@ -133,9 +126,6 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
   const handleSearch = (query) => {
     setSearchQuery(query);
     setUpcomingPage(1);
-    if (onSearchChange) {
-      onSearchChange(query);
-    }
   };
 
   // Handle tab change
@@ -144,9 +134,6 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
     setSearchQuery("");
     setActiveGenre(null);
     setUpcomingPage(1);
-    if (onSearchChange) {
-      onSearchChange("");
-    }
   };
 
   // Handle genre filter
@@ -165,9 +152,6 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
   const clearFilters = () => {
     setSearchQuery("");
     setActiveGenre(null);
-    if (onSearchChange) {
-      onSearchChange("");
-    }
   };
 
   // Loading skeleton

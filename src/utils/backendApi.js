@@ -1,5 +1,6 @@
 // Backend API integration for movie booking
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Helper function for API requests
 const apiRequest = async (endpoint, options = {}) => {
@@ -7,7 +8,7 @@ const apiRequest = async (endpoint, options = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
     const config = {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
       ...options,
@@ -17,12 +18,14 @@ const apiRequest = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        error.message || `HTTP error! status: ${response.status}`,
+      );
     }
 
     return await response.json();
   } catch (error) {
-    console.error('API request failed:', error);
+    console.error("API request failed:", error);
     throw error;
   }
 };
@@ -40,19 +43,19 @@ export const fetchMoviesFromBackend = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams();
 
-    if (params.status) queryParams.append('status', params.status);
-    if (params.genre) queryParams.append('genre', params.genre);
-    if (params.search) queryParams.append('search', params.search);
-    if (params.page) queryParams.append('page', params.page);
-    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.status) queryParams.append("status", params.status);
+    if (params.genre) queryParams.append("genre", params.genre);
+    if (params.search) queryParams.append("search", params.search);
+    if (params.page) queryParams.append("page", params.page);
+    if (params.limit) queryParams.append("limit", params.limit);
 
     const queryString = queryParams.toString();
-    const endpoint = queryString ? `/movies?${queryString}` : '/movies';
+    const endpoint = queryString ? `/movies?${queryString}` : "/movies";
 
     const response = await apiRequest(endpoint);
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch movies from backend:', error);
+    console.error("Failed to fetch movies from backend:", error);
     throw error;
   }
 };
@@ -87,7 +90,7 @@ export const fetchMovieShowtimes = async (movieId, date = null) => {
     const response = await apiRequest(endpoint);
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch movie showtimes:', error);
+    console.error("Failed to fetch movie showtimes:", error);
     throw error;
   }
 };
@@ -106,12 +109,14 @@ export const fetchMovieShowtimes = async (movieId, date = null) => {
 export const fetchOccupiedSeats = async (movieId, date, showtimeId = null) => {
   try {
     const params = new URLSearchParams({ movieId, date });
-    if (showtimeId) params.append('showtimeId', showtimeId);
+    if (showtimeId) params.append("showtimeId", showtimeId);
 
-    const response = await apiRequest(`/bookings/occupied-seats?${params.toString()}`);
+    const response = await apiRequest(
+      `/bookings/occupied-seats?${params.toString()}`,
+    );
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch occupied seats:', error);
+    console.error("Failed to fetch occupied seats:", error);
     return []; // Return empty array on error
   }
 };
@@ -123,13 +128,13 @@ export const fetchOccupiedSeats = async (movieId, date, showtimeId = null) => {
  */
 export const createBooking = async (bookingData) => {
   try {
-    const response = await apiRequest('/bookings', {
-      method: 'POST',
+    const response = await apiRequest("/bookings", {
+      method: "POST",
       body: JSON.stringify(bookingData),
     });
     return response.data;
   } catch (error) {
-    console.error('Failed to create booking:', error);
+    console.error("Failed to create booking:", error);
     throw error;
   }
 };
@@ -143,12 +148,12 @@ export const createBooking = async (bookingData) => {
 export const confirmBooking = async (bookingId, transactionId) => {
   try {
     const response = await apiRequest(`/bookings/${bookingId}/confirm`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ transactionId }),
     });
     return response.data;
   } catch (error) {
-    console.error('Failed to confirm booking:', error);
+    console.error("Failed to confirm booking:", error);
     throw error;
   }
 };
@@ -161,11 +166,11 @@ export const confirmBooking = async (bookingId, transactionId) => {
 export const cancelBooking = async (bookingId) => {
   try {
     const response = await apiRequest(`/bookings/${bookingId}/cancel`, {
-      method: 'POST',
+      method: "POST",
     });
     return response;
   } catch (error) {
-    console.error('Failed to cancel booking:', error);
+    console.error("Failed to cancel booking:", error);
     throw error;
   }
 };
@@ -180,7 +185,7 @@ export const fetchBookingById = async (bookingId) => {
     const response = await apiRequest(`/bookings/${bookingId}`);
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch booking:', error);
+    console.error("Failed to fetch booking:", error);
     throw error;
   }
 };
@@ -194,18 +199,20 @@ export const fetchAllBookings = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams();
 
-    if (params.status) queryParams.append('status', params.status);
-    if (params.email) queryParams.append('email', params.email);
-    if (params.page) queryParams.append('page', params.page);
-    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.status) queryParams.append("status", params.status);
+    if (params.email) queryParams.append("email", params.email);
+    if (params.page) queryParams.append("page", params.page);
+    if (params.limit) queryParams.append("limit", params.limit);
 
     const queryString = queryParams.toString();
-    const endpoint = queryString ? `/bookings/all?${queryString}` : '/bookings/all';
+    const endpoint = queryString
+      ? `/bookings/all?${queryString}`
+      : "/bookings/all";
 
     const response = await apiRequest(endpoint);
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch bookings:', error);
+    console.error("Failed to fetch bookings:", error);
     throw error;
   }
 };
@@ -220,10 +227,10 @@ export const fetchAllBookings = async (params = {}) => {
  */
 export const fetchScreens = async () => {
   try {
-    const response = await apiRequest('/screens');
+    const response = await apiRequest("/screens");
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch screens:', error);
+    console.error("Failed to fetch screens:", error);
     throw error;
   }
 };
@@ -238,7 +245,7 @@ export const fetchScreenById = async (screenId) => {
     const response = await apiRequest(`/screens/${screenId}`);
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch screen:', error);
+    console.error("Failed to fetch screen:", error);
     throw error;
   }
 };
@@ -247,12 +254,40 @@ export const fetchScreenById = async (screenId) => {
 // DATA FORMATTING
 // ============================================================================
 
+// Genre name to ID mapping (based on TMDB genre IDs)
+const GENRE_NAME_TO_ID = {
+  Action: 28,
+  Adventure: 12,
+  Animation: 16,
+  Comedy: 35,
+  Crime: 80,
+  Documentary: 99,
+  Drama: 18,
+  Family: 10751,
+  Fantasy: 14,
+  History: 36,
+  Horror: 27,
+  Music: 10402,
+  Mystery: 9648,
+  Romance: 10749,
+  "Science Fiction": 878,
+  "Sci-Fi": 878,
+  "TV Movie": 10770,
+  Thriller: 53,
+  War: 10752,
+  Western: 37,
+};
+
 /**
  * Format backend movie data for frontend use
  * @param {Object} movie - Raw movie data from backend
  * @returns {Object} Formatted movie data
  */
 export const formatBackendMovie = (movie) => {
+  const genreIds = (movie.genres || [])
+    .map((genreName) => GENRE_NAME_TO_ID[genreName])
+    .filter(Boolean);
+
   return {
     id: movie._id,
     title: movie.title,
@@ -263,7 +298,7 @@ export const formatBackendMovie = (movie) => {
     rating: movie.rating,
     voteCount: 0,
     genres: movie.genres || [],
-    genreIds: [],
+    genreIds: genreIds,
     duration: movie.duration,
     language: movie.language,
     status: movie.status,
@@ -282,8 +317,8 @@ export const formatShowtime = (showtime) => {
     time: showtime.time,
     date: new Date(showtime.date),
     screenId: showtime.screenId,
-    screenName: showtime.screenId?.name || 'Unknown',
-    screenType: showtime.screenId?.screenType || 'Standard',
+    screenName: showtime.screenId?.name || "Unknown",
+    screenType: showtime.screenId?.screenType || "Standard",
     availableSeats: showtime.availableSeats,
     price: showtime.price,
   };
@@ -295,10 +330,10 @@ export const formatShowtime = (showtime) => {
  */
 export const checkBackendHealth = async () => {
   try {
-    const response = await fetch(API_BASE_URL.replace('/api', ''));
+    const response = await fetch(API_BASE_URL.replace("/api", ""));
     return response.ok;
   } catch (error) {
-    console.warn('Backend is not available:', error);
+    console.warn("Backend is not available:", error);
     return false;
   }
 };
