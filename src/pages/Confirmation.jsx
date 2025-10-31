@@ -76,7 +76,11 @@ const Confirmation = () => {
     );
   }
 
-  const posterUrl = getImageUrl(booking.movie.poster_path, "poster", "medium");
+  const posterUrl = getImageUrl(
+    booking.movie?.poster_path || booking.movie?.posterPath,
+    "poster",
+    "medium",
+  );
 
   return (
     <div className="min-h-screen bg-primary-50">
@@ -122,23 +126,32 @@ const Confirmation = () => {
               {/* Movie Information */}
               <div>
                 <div className="flex space-x-4 mb-6">
-                  <img
-                    src={posterUrl}
-                    alt={booking.movie.title}
-                    className="w-24 h-36 object-cover border border-primary-200"
-                    onError={(e) => {
-                      e.target.src = "/placeholder-movie-poster.jpg";
-                    }}
-                  />
+                  {posterUrl ? (
+                    <img
+                      src={posterUrl}
+                      alt={booking.movie?.title || "Movie"}
+                      className="w-24 h-36 object-cover border border-primary-200"
+                      onError={(e) => {
+                        e.target.src = "/placeholder-movie-poster.jpg";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-24 h-36 bg-primary-100 flex items-center justify-center border border-primary-200">
+                      <Film className="h-8 w-8 text-primary-400" />
+                    </div>
+                  )}
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-primary-900 mb-2">
-                      {booking.movie.title}
+                    <h3 className="text-xl font-bold text-primary-900 mb-2">
+                      {booking.movie?.title ||
+                        booking.movieId?.title ||
+                        "Movie"}
                     </h3>
-                    {booking.movie.runtime && (
+                    {(booking.movie?.runtime || booking.movie?.duration) && (
                       <div className="flex items-center space-x-1 text-primary-600 mb-2">
                         <Clock className="w-4 h-4" />
                         <span className="text-sm">
-                          {booking.movie.runtime} minutes
+                          {booking.movie?.runtime || booking.movie?.duration}{" "}
+                          minutes
                         </span>
                       </div>
                     )}

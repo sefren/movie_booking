@@ -218,7 +218,7 @@ const Payment = () => {
   }
 
   const posterUrl = getImageUrl(
-    bookingData.movie.poster_path,
+    bookingData.movie?.poster_path || bookingData.movie?.posterPath,
     "poster",
     "small",
   );
