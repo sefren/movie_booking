@@ -32,7 +32,7 @@ import {
 const Booking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { movie, loading, error } = useMovieDetails(id);
+  const { movie, loading: tmdbLoading, error: tmdbError } = useMovieDetails(id);
 
   // Booking state
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -54,10 +54,15 @@ const Booking = () => {
   const [showtimes, setShowtimes] = useState([]);
   const [occupiedSeats, setOccupiedSeats] = useState([]);
   const [showtimesLoading, setShowtimesLoading] = useState(false);
+  const [movieLoading, setMovieLoading] = useState(true);
+  const [movieError, setMovieError] = useState(null);
 
   // Check backend availability and fetch movie
   useEffect(() => {
     const checkAndFetch = async () => {
+      setMovieLoading(true);
+      setMovieError(null);
+
       const isAvailable = await checkBackendHealth();
       setUseBackend(isAvailable);
 
@@ -65,10 +70,15 @@ const Booking = () => {
         try {
           const movieData = await fetchMovieById(id);
           setBackendMovie(movieData);
+          setMovieLoading(false);
         } catch (error) {
           console.error("Failed to fetch movie from backend:", error);
+          setMovieError(error.message);
           setUseBackend(false);
+          setMovieLoading(false);
         }
+      } else {
+        setMovieLoading(false);
       }
     };
     checkAndFetch();
@@ -342,10 +352,19 @@ const Booking = () => {
     );
   }
 
-  const posterUrl =
-    useBackend && backendMovie
-      ? getImageUrl(backendMovie.posterPath, "poster", "large")
-      : getImageUrl(movie?.poster_path, "poster", "large");
+  const posterUrl = getImageUrl(
+    displayMovie?.posterPath || displayMovie?.poster_path,
+    "poster",
+    "large",
+  );
+
+  const movieTitle = displayMovie?.title || "Movie";
+  const movieRating = displayMovie?.rating || displayMovie?.vote_average;
+  const movieDuration = displayMovie?.duration || displayMovie?.runtime;
+  const movieReleaseDate =
+    displayMovie?.releaseDate || displayMovie?.release_date;
+  const movieGenres = displayMovie?.genres || [];
+  const movieOverview = displayMovie?.overview || displayMovie?.description;
 
   return (
     <div className="min-h-screen bg-white">
@@ -365,7 +384,7 @@ const Booking = () => {
             <div className="flex-shrink-0">
               <img
                 src={posterUrl}
-                alt={movie.title}
+                alt={movieTitle}
                 className="w-48 h-72 object-cover border border-white/20"
                 onError={(e) => {
                   e.target.src = "/placeholder-movie-poster.jpg";
@@ -376,48 +395,48 @@ const Booking = () => {
             {/* Movie Info */}
             <div className="flex-1">
               <h1 className="text-3xl lg:text-4xl font-bold mb-2">
-                {movie.title}
+                {movieTitle}
               </h1>
 
               <div className="flex flex-wrap items-center gap-4 text-white/80 mb-4">
-                {movie.vote_average && (
+                {movieRating && (
                   <div className="flex items-center space-x-1">
                     <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span>{movie.vote_average.toFixed(1)}</span>
+                    <span>{movieRating.toFixed(1)}</span>
                   </div>
                 )}
 
-                {movie.runtime && (
+                {movieRuntime && (
                   <div className="flex items-center space-x-1">
                     <Clock className="w-4 h-4" />
-                    <span>{movie.runtime} min</span>
+                    <span>{movieRuntime} min</span>
                   </div>
                 )}
 
-                {movie.release_date && (
+                {movieReleaseDate && (
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>{new Date(movie.release_date).getFullYear()}</span>
+                    <span>{new Date(movieReleaseDate).getFullYear()}</span>
                   </div>
                 )}
               </div>
 
-              {movie.genres && (
+              {movieGenres && movieGenres.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {movie.genres.slice(0, 3).map((genre) => (
+                  {movieGenres.slice(0, 3).map((genre, index) => (
                     <span
-                      key={genre.id}
+                      key={index}
                       className="px-3 py-1 bg-white/20 text-white text-sm font-medium border border-white/30"
                     >
-                      {genre.name}
+                      {typeof genre === "string" ? genre : genre.name}
                     </span>
                   ))}
                 </div>
               )}
 
-              {movie.overview && (
+              {movieOverview && (
                 <p className="text-white/90 leading-relaxed max-w-3xl">
-                  {movie.overview}
+                  {movieOverview}
                 </p>
               )}
             </div>

@@ -242,13 +242,8 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
               <h1 className="text-4xl font-bold text-primary-900">Cinema</h1>
             </div>
             <p className="text-xl text-primary-600 max-w-2xl mx-auto">
-              Book your tickets for movies in theaters
+              Book tickets for movies showing in theaters now
             </p>
-            {useBackend && (
-              <p className="text-sm text-green-600 mt-2">
-                ✅ Connected to backend - Real-time data
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -327,8 +322,8 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
                   : activeGenre
                     ? "Filtered Movies"
                     : activeTab === "now_playing"
-                      ? "Now Playing in Theaters"
-                      : "Coming Soon"}
+                      ? "Now Playing - Book Your Tickets"
+                      : "Coming Soon - Pre-Book Tickets"}
               </h2>
               <p className="text-primary-600 mt-1">
                 {filteredMovies.length}{" "}
@@ -392,8 +387,8 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
           <div className="mt-12 p-6 bg-primary-50 border border-primary-200 text-center">
             <p className="text-sm text-primary-700">
               {activeTab === "now_playing"
-                ? "All movies currently showing in our theater are displayed above. Select a movie to book your tickets."
-                : "Browse upcoming releases and book in advance. More movies are added regularly."}
+                ? "🎬 These movies are currently showing in theaters. Select showtimes and book your seats!"
+                : "🎞️ Upcoming releases - Pre-book your tickets before they hit theaters!"}
             </p>
           </div>
         )}
