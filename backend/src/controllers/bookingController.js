@@ -37,9 +37,6 @@ export const getOccupiedSeats = async (req, res, next) => {
 
 // Create booking with seat locking
 export const createBooking = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { movieId, screenId, showtime, seats, customerInfo, totalAmount } =
       req.body;
@@ -49,8 +46,8 @@ export const createBooking = async (req, res, next) => {
       throw new Error("At least one seat must be selected");
     }
 
-    if (seats.length > 8) {
-      throw new Error("Maximum 8 seats can be booked at once");
+    if (seats.length > 10) {
+      throw new Error("Maximum 10 seats can be booked at once");
     }
 
     // Check if seats are already booked
@@ -61,7 +58,7 @@ export const createBooking = async (req, res, next) => {
       "showtime.time": showtime.time,
       "seats.seatId": { $in: seatIds },
       status: { $in: ["pending", "confirmed"] },
-    }).session(session);
+    });
 
     if (existingBookings.length > 0) {
       throw new Error("One or more selected seats are already booked");
@@ -71,37 +68,33 @@ export const createBooking = async (req, res, next) => {
     const bookingId = generateBookingId();
     const lockedUntil = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    const booking = await Booking.create(
-      [
-        {
-          bookingId,
-          userId: req.user?._id || null,
-          movieId,
-          screenId,
-          showtime,
-          seats,
-          customerInfo,
-          totalAmount,
-          status: "pending",
-          lockedUntil,
-        },
-      ],
-      { session },
-    );
+    const booking = await Booking.create({
+      bookingId,
+      userId: req.user?._id || null,
+      movieId,
+      screenId,
+      showtime,
+      seats,
+      customerInfo,
+      totalAmount,
+      status: "pending",
+      lockedUntil,
+    });
 
-    await session.commitTransaction();
+    // Add booking to user's bookings array if user is logged in
+    if (req.user?._id) {
+      await User.findByIdAndUpdate(req.user._id, {
+        $push: { bookings: booking._id },
+      });
+    }
 
     res.status(201).json({
       success: true,
-      data: booking[0],
+      data: booking,
       message: "Seats locked. Complete payment within 10 minutes.",
     });
   } catch (error) {
-    await session.abortTransaction();
-    error.statusCode = 400;
     next(error);
-  } finally {
-    session.endSession();
   }
 };
 
