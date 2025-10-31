@@ -22,7 +22,6 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { getUserBookings, updateUserProfile } from "../utils/authApi";
 import { getImageUrl } from "../utils/api";
-</parameter>
 
 const Profile = () => {
   const { user, isAuthenticated, updateUser, logout } = useAuth();
@@ -177,7 +176,10 @@ const Profile = () => {
                 <button
                   onClick={() => {
                     setIsEditing(false);
-                    setEditForm({ name: user?.name || "", phone: user?.phone || "" });
+                    setEditForm({
+                      name: user?.name || "",
+                      phone: user?.phone || "",
+                    });
                   }}
                   className="flex items-center space-x-2 text-red-600 hover:text-red-800"
                 >
@@ -234,7 +236,9 @@ const Profile = () => {
                 ) : (
                   <div>
                     <p className="text-sm text-primary-600">Phone</p>
-                    <p className="font-medium text-primary-900">{user?.phone}</p>
+                    <p className="font-medium text-primary-900">
+                      {user?.phone}
+                    </p>
                   </div>
                 )}
               </div>
@@ -243,7 +247,9 @@ const Profile = () => {
                 <Ticket className="w-5 h-5 text-primary-600" />
                 <div>
                   <p className="text-sm text-primary-600">Total Bookings</p>
-                  <p className="font-medium text-primary-900">{bookings.length}</p>
+                  <p className="font-medium text-primary-900">
+                    {bookings.length}
+                  </p>
                 </div>
               </div>
             </div>
@@ -252,7 +258,9 @@ const Profile = () => {
 
         {/* Bookings Section */}
         <div className="bg-white border border-primary-200 p-6">
-          <h2 className="text-2xl font-bold text-primary-900 mb-6">My Bookings</h2>
+          <h2 className="text-2xl font-bold text-primary-900 mb-6">
+            My Bookings
+          </h2>
 
           {error ? (
             <div className="text-center py-12">
@@ -271,17 +279,17 @@ const Profile = () => {
               <p className="text-primary-600 mb-6">
                 Start booking your favorite movies now!
               </p>
-              <button
-                onClick={() => navigate("/")}
-                className="btn-primary"
-              >
+              <button onClick={() => navigate("/")} className="btn-primary">
                 Browse Movies
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               {bookings.map((booking) => {
-                const timeRemaining = booking.status === "pending" ? getTimeRemaining(booking.lockedUntil) : null;
+                const timeRemaining =
+                  booking.status === "pending"
+                    ? getTimeRemaining(booking.lockedUntil)
+                    : null;
                 const isExpired = timeRemaining === "Expired";
 
                 return (
@@ -298,7 +306,7 @@ const Profile = () => {
                               src={getImageUrl(
                                 booking.movieId.posterPath,
                                 "poster",
-                                "small"
+                                "small",
                               )}
                               alt={booking.movieId?.title}
                               className="w-full h-full object-cover"
@@ -325,16 +333,18 @@ const Profile = () => {
                           <div className="text-right">
                             <span
                               className={`inline-block px-3 py-1 text-xs font-medium border ${getStatusColor(
-                                booking.status
+                                booking.status,
                               )}`}
                             >
                               {booking.status?.toUpperCase()}
                             </span>
-                            {booking.status === "pending" && timeRemaining && !isExpired && (
-                              <p className="text-xs text-yellow-600 mt-1">
-                                Expires in: {timeRemaining}
-                              </p>
-                            )}
+                            {booking.status === "pending" &&
+                              timeRemaining &&
+                              !isExpired && (
+                                <p className="text-xs text-yellow-600 mt-1">
+                                  Expires in: {timeRemaining}
+                                </p>
+                              )}
                             {isExpired && (
                               <p className="text-xs text-red-600 mt-1">
                                 Payment expired
@@ -357,20 +367,24 @@ const Profile = () => {
                           <div className="flex items-center space-x-2 text-primary-600">
                             <MapPin className="w-4 h-4" />
                             <span>
-                              {booking.screenId?.name} ({booking.screenId?.screenType})
+                              {booking.screenId?.name} (
+                              {booking.screenId?.screenType})
                             </span>
                           </div>
 
                           <div className="flex items-center space-x-2 text-primary-600">
                             <Ticket className="w-4 h-4" />
                             <span>
-                              Seats: {booking.seats?.map((s) => s.seatId).join(", ")}
+                              Seats:{" "}
+                              {booking.seats?.map((s) => s.seatId).join(", ")}
                             </span>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-primary-100">
-                          <span className="text-sm text-primary-600">Total Amount:</span>
+                          <span className="text-sm text-primary-600">
+                            Total Amount:
+                          </span>
                           <span className="text-lg font-bold text-primary-900">
                             ${booking.totalAmount?.toFixed(2)}
                           </span>
@@ -388,7 +402,9 @@ const Profile = () => {
                                 <span>View Ticket</span>
                               </button>
                               <button
-                                onClick={() => alert("Download feature coming soon")}
+                                onClick={() =>
+                                  alert("Download feature coming soon")
+                                }
                                 className="flex items-center space-x-2 px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-50 text-sm"
                               >
                                 <Download className="w-4 h-4" />
