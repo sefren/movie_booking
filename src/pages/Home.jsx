@@ -18,14 +18,14 @@ import {
 import { useDebounce } from "../hooks/useDebounce";
 import { API_CONFIG } from "../utils/constants";
 
-const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
+const Home = () => {
   // State
   const [activeTab, setActiveTab] = useState("now_playing"); // "now_playing" or "upcoming"
   const [movies, setMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(headerSearchQuery);
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeGenre, setActiveGenre] = useState(null);
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
@@ -36,11 +36,6 @@ const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
     searchQuery,
     API_CONFIG.debounceDelay,
   );
-
-  // Sync with header search
-  useEffect(() => {
-    setSearchQuery(headerSearchQuery);
-  }, [headerSearchQuery]);
 
   // Check backend availability on mount
   useEffect(() => {
@@ -59,6 +54,11 @@ const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
   // Fetch movies based on active tab
   useEffect(() => {
     const loadMovies = async () => {
+      console.log("Loading movies...", {
+        activeTab,
+        debouncedSearchQuery,
+        useBackend,
+      });
       setLoading(true);
       setError(null);
 
@@ -75,11 +75,15 @@ const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
             limit: 20,
           };
 
+          console.log("Fetching from backend with params:", params);
           const backendMovies = await fetchMoviesFromBackend(params);
+          console.log("Backend response:", backendMovies);
 
           if (Array.isArray(backendMovies)) {
             formattedMovies = backendMovies.map(formatBackendMovie);
+            console.log("Formatted backend movies:", formattedMovies.length);
           } else {
+            console.error("Backend did not return array:", backendMovies);
             formattedMovies = [];
           }
 
@@ -96,8 +100,10 @@ const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
           }
 
           formattedMovies = result.results.map(formatMovieData);
+          console.log("Formatted TMDB movies:", formattedMovies.length);
         }
 
+        console.log("Setting movies:", formattedMovies.length);
         setMovies(formattedMovies);
         setFilteredMovies(formattedMovies);
       } catch (err) {
@@ -119,8 +125,14 @@ const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
 
   // Apply genre filter (client-side filtering)
   useEffect(() => {
+    console.log("Applying genre filter:", {
+      activeGenre,
+      totalMovies: movies.length,
+    });
     if (activeGenre) {
       const filtered = filterMoviesByGenre(movies, activeGenre);
+      console.log("Filtered movies by genre:", filtered.length);
+      console.log("Sample movie genreIds:", movies[0]?.genreIds);
       setFilteredMovies(filtered);
     } else {
       setFilteredMovies(movies);
@@ -128,30 +140,18 @@ const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
   }, [activeGenre, movies]);
 
   // Handle search
-  const handleSearch = useCallback(
-    (query) => {
-      setSearchQuery(query);
-      setUpcomingPage(1);
-      if (onHeaderSearchChange) {
-        onHeaderSearchChange(query);
-      }
-    },
-    [onHeaderSearchChange],
-  );
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query);
+    setUpcomingPage(1);
+  }, []);
 
   // Handle tab change
-  const handleTabChange = useCallback(
-    (tab) => {
-      setActiveTab(tab);
-      setSearchQuery("");
-      setActiveGenre(null);
-      setUpcomingPage(1);
-      if (onHeaderSearchChange) {
-        onHeaderSearchChange("");
-      }
-    },
-    [onHeaderSearchChange],
-  );
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+    setSearchQuery("");
+    setActiveGenre(null);
+    setUpcomingPage(1);
+  }, []);
 
   // Handle genre filter
   const handleGenreChange = useCallback((genreId) => {
@@ -169,10 +169,7 @@ const Home = ({ headerSearchQuery = "", onHeaderSearchChange }) => {
   const clearFilters = useCallback(() => {
     setSearchQuery("");
     setActiveGenre(null);
-    if (onHeaderSearchChange) {
-      onHeaderSearchChange("");
-    }
-  }, [onHeaderSearchChange]);
+  }, []);
 
   // Loading skeleton
   const LoadingSkeleton = () => (

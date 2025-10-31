@@ -11,13 +11,9 @@ import {
 import { searchMovies, formatMovieData } from "../utils/api";
 import { API_CONFIG } from "../utils/constants";
 
-const Header = ({
-  onSearchChange,
-  searchQuery: externalSearchQuery = "",
-  showSearch = true,
-}) => {
+const Header = ({ showSearch = true }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(externalSearchQuery);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -29,10 +25,6 @@ const Header = ({
     searchQuery,
     API_CONFIG.debounceDelay,
   );
-
-  useEffect(() => {
-    setSearchQuery(externalSearchQuery);
-  }, [externalSearchQuery]);
 
   useEffect(() => {
     const checkBackend = async () => {
@@ -95,18 +87,12 @@ const Header = ({
 
   const handleSearchChange = (value) => {
     setSearchQuery(value);
-    if (onSearchChange) {
-      onSearchChange(value);
-    }
   };
 
   const handleClearSearch = () => {
     setSearchQuery("");
     setSearchResults([]);
     setShowDropdown(false);
-    if (onSearchChange) {
-      onSearchChange("");
-    }
   };
 
   const handleMovieClick = (movieId) => {

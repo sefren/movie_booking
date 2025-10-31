@@ -13,33 +13,16 @@ import Confirmation from "./pages/Confirmation";
 import { useState } from "react";
 
 function AppContent() {
-  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
   const location = useLocation();
   const isHomePage = location.pathname === "/";
 
-  const handleHeaderSearch = (query) => {
-    setHeaderSearchQuery(query);
-  };
-
   return (
     <div className="min-h-screen bg-white">
-      <Header
-        onSearchChange={handleHeaderSearch}
-        searchQuery={headerSearchQuery}
-        showSearch={isHomePage}
-      />
+      <Header showSearch={isHomePage} />
 
       <main>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <Home
-                headerSearchQuery={headerSearchQuery}
-                onHeaderSearchChange={setHeaderSearchQuery}
-              />
-            }
-          />
+          <Route path="/" element={<Home />} />
           <Route path="/movie/:id" element={<Booking />} />
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/payment" element={<Payment />} />
