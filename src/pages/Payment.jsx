@@ -469,7 +469,9 @@ const Payment = () => {
                   </div>
                   <div className="flex items-center space-x-1">
                     <Clock className="w-3 h-3" />
-                    <span>{bookingData.showtime}</span>
+                    <span>
+                      {bookingData.showtime?.time || bookingData.showtime}
+                    </span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Users className="w-3 h-3" />
