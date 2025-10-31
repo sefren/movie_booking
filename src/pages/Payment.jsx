@@ -145,7 +145,7 @@ const Payment = () => {
               bookingData.bookingId,
             );
             await confirmBooking(bookingData.bookingId, transactionId);
-            console.log("✅ Booking confirmed with backend");
+            console.log(" Booking confirmed with backend");
           } catch (error) {
             console.error("Failed to confirm booking with backend:", error);
             // Continue anyway for demo purposes

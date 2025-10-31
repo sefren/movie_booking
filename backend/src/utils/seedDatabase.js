@@ -51,15 +51,15 @@ const seedDatabase = async () => {
   try {
     await connectDB();
 
-    console.log("🗑️  Clearing existing data...");
+    console.log("  Clearing existing data...");
     await Movie.deleteMany({});
     await Screen.deleteMany({});
     await Booking.deleteMany({});
 
-    console.log("📽️  Creating screens...");
+    console.log("  Creating screens...");
     const createdScreens = await Screen.insertMany(screens);
 
-    console.log("🎬 Creating movies with showtimes...");
+    console.log(" Creating movies with showtimes...");
     const dates = getNextDays(7);
     const times = ["10:00 AM", "01:30 PM", "04:00 PM", "07:00 PM", "10:30 PM"];
 
@@ -218,17 +218,17 @@ const seedDatabase = async () => {
     const allMovies = [...nowPlayingWithShowtimes, ...upcomingWithoutShowtimes];
     await Movie.insertMany(allMovies);
 
-    console.log("✅ Database seeded successfully!");
-    console.log(`📊 Created ${createdScreens.length} screens`);
-    console.log(`🎬 Created ${nowPlayingMovies.length} now playing movies`);
-    console.log(`🎞️  Created ${upcomingMovies.length} upcoming movies`);
+    console.log(" Database seeded successfully!");
+    console.log(` Created ${createdScreens.length} screens`);
+    console.log(` Created ${nowPlayingMovies.length} now playing movies`);
+    console.log(`  Created ${upcomingMovies.length} upcoming movies`);
     console.log(
-      `⏰ Now playing movies have ${times.length} showtimes per day for ${dates.length} days`,
+      ` Now playing movies have ${times.length} showtimes per day for ${dates.length} days`,
     );
 
     process.exit(0);
   } catch (error) {
-    console.error("❌ Error seeding database:", error);
+    console.error(" Error seeding database:", error);
     process.exit(1);
   }
 };

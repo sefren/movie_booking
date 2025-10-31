@@ -50,9 +50,9 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
       const isAvailable = await checkBackendHealth();
       setUseBackend(isAvailable);
       if (isAvailable) {
-        console.log("✅ Using backend API for movies");
+        console.log(" Using backend API for movies");
       } else {
-        console.log("⚠️ Backend unavailable, using TMDB/mock data");
+        console.log(" Backend unavailable, using TMDB/mock data");
       }
     };
     checkBackend();
@@ -387,8 +387,8 @@ const Home = ({ searchQuery: externalSearchQuery, onSearchChange }) => {
           <div className="mt-12 p-6 bg-primary-50 border border-primary-200 text-center">
             <p className="text-sm text-primary-700">
               {activeTab === "now_playing"
-                ? "🎬 These movies are currently showing in theaters. Select showtimes and book your seats!"
-                : "🎞️ Upcoming releases - Pre-book your tickets before they hit theaters!"}
+                ? " These movies are currently showing in theaters. Select showtimes and book your seats!"
+                : " Upcoming releases - Pre-book your tickets before they hit theaters!"}
             </p>
           </div>
         )}

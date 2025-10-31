@@ -32,7 +32,12 @@ import {
 const Booking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { movie: tmdbMovie } = useMovieDetails(id);
+
+  // Check if ID is a MongoDB ObjectId (24 hex characters) or numeric TMDB ID
+  const isMongoId = id && id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id);
+
+  // Only fetch from TMDB if it's a numeric ID
+  const { movie: tmdbMovie } = useMovieDetails(!isMongoId ? id : null);
 
   // Booking state
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -60,26 +65,50 @@ const Booking = () => {
   // Check backend availability and fetch movie
   useEffect(() => {
     const checkAndFetch = async () => {
+      console.log(" Booking page loaded for movie ID:", id);
+      console.log(" ID Type:", isMongoId ? "MongoDB ObjectId" : "TMDB ID");
+
       setLoading(true);
       setError(null);
 
-      const isAvailable = await checkBackendHealth();
-      setUseBackend(isAvailable);
+      try {
+        const isAvailable = await checkBackendHealth();
+        console.log(" Backend available:", isAvailable);
 
-      if (isAvailable && id) {
-        try {
-          const movieData = await fetchMovieById(id);
-          setBackendMovie(movieData);
-        } catch (err) {
-          console.error("Failed to fetch movie from backend:", err);
-          setError(err.message);
+        if (isAvailable && id) {
+          try {
+            console.log(" Fetching movie from backend:", id);
+            const movieData = await fetchMovieById(id);
+            console.log(" Backend movie data received:", movieData);
+            console.log(" Movie title:", movieData?.title);
+            setBackendMovie(movieData);
+            setUseBackend(true);
+          } catch (err) {
+            console.error(" Failed to fetch movie from backend:", err);
+            console.log(" Falling back to TMDB data");
+            setUseBackend(false);
+          }
+        } else {
+          console.log(" Backend not available or no ID");
           setUseBackend(false);
         }
+      } catch (err) {
+        console.error(" Error in checkAndFetch:", err);
+        setUseBackend(false);
+      } finally {
+        console.log(" Setting loading to false");
+        setLoading(false);
       }
-      setLoading(false);
     };
-    checkAndFetch();
-  }, [id]);
+
+    if (id) {
+      checkAndFetch();
+    } else {
+      console.error(" No movie ID provided");
+      setError("No movie ID provided");
+      setLoading(false);
+    }
+  }, [id, isMongoId]);
 
   // Fetch showtimes when date changes
   useEffect(() => {
@@ -107,26 +136,34 @@ const Booking = () => {
     loadShowtimes();
   }, [id, selectedDate, useBackend]);
 
-  // Fetch occupied seats when showtime changes
+  // Load occupied seats when showtime changes
   useEffect(() => {
     const loadOccupiedSeats = async () => {
-      if (!useBackend || !id || !selectedShowtime) return;
+      if (!selectedShowtime?.id || !selectedDate || !useBackend) {
+        console.log(" Skipping occupied seats load");
+        return;
+      }
 
+      console.log(
+        " Loading occupied seats for showtime:",
+        selectedShowtime.id,
+      );
       try {
         const occupied = await fetchOccupiedSeats(
           id,
           selectedDate,
           selectedShowtime.id,
         );
+        console.log(" Occupied seats loaded:", occupied.length);
         setOccupiedSeats(occupied);
-      } catch (error) {
-        console.error("Failed to fetch occupied seats:", error);
+      } catch (err) {
+        console.error(" Failed to load occupied seats:", err);
         setOccupiedSeats([]);
       }
     };
 
     loadOccupiedSeats();
-  }, [id, selectedDate, selectedShowtime, useBackend]);
+  }, [id, selectedDate, selectedShowtime?.id, useBackend]);
 
   // Generate available dates (next 7 days)
   const getAvailableDates = () => {
@@ -273,7 +310,7 @@ const Booking = () => {
           lockedUntil: createdBooking.lockedUntil,
         };
 
-        console.log("✅ Booking created with backend:", bookingData);
+        console.log(" Booking created with backend:", bookingData);
       } else {
         // Fallback to mock booking
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -293,7 +330,7 @@ const Booking = () => {
           bookingId: `BK${Date.now()}`,
         };
 
-        console.log("⚠️ Mock booking created (backend unavailable)");
+        console.log(" Mock booking created (backend unavailable)");
       }
 
       localStorage.setItem("currentBooking", JSON.stringify(bookingData));
@@ -306,7 +343,22 @@ const Booking = () => {
     }
   };
 
+  // Use backend movie if available, otherwise fallback to TMDB
+  const displayMovie = useBackend && backendMovie ? backendMovie : tmdbMovie;
+
+  console.log(" Display movie data:", {
+    loading,
+    useBackend,
+    hasBackendMovie: !!backendMovie,
+    hasTmdbMovie: !!tmdbMovie,
+    backendMovieTitle: backendMovie?.title,
+    tmdbMovieTitle: tmdbMovie?.title,
+    displayMovieTitle: displayMovie?.title,
+    displayMovie: displayMovie,
+  });
+
   if (loading) {
+    console.log(" Booking page still loading...");
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -317,7 +369,9 @@ const Booking = () => {
     );
   }
 
-  if (error || (!displayMovie && !tmdbMovie)) {
+  // If we have backend movie but no TMDB movie, that's fine
+  if (!displayMovie) {
+    console.error(" No movie data available, showing error");
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -335,9 +389,6 @@ const Booking = () => {
       </div>
     );
   }
-
-  // Use backend movie if available, otherwise fallback to TMDB
-  const displayMovie = useBackend && backendMovie ? backendMovie : tmdbMovie;
 
   const posterUrl = getImageUrl(
     displayMovie?.posterPath || displayMovie?.poster_path,
@@ -490,7 +541,7 @@ const Booking = () => {
                               {showtime.time}
                             </div>
                             <div className="text-xs opacity-80">
-                              {showtime.screenName} • {showtime.screenType}
+                              {showtime.screenName}  {showtime.screenType}
                             </div>
                             <div className="text-xs opacity-70 mt-1">
                               {showtime.availableSeats} seats available
@@ -642,7 +693,7 @@ const Booking = () => {
                 <div className="flex justify-between">
                   <span className="text-primary-600">Time:</span>
                   <span className="font-medium text-primary-900">
-                    {selectedShowtime}
+                    {selectedShowtime?.time || "Not selected"}
                   </span>
                 </div>
 

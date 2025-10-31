@@ -233,10 +233,10 @@ const Confirmation = () => {
                 <div className="bg-yellow-50 border border-yellow-200 p-4">
                   <h5 className="font-medium text-yellow-900 mb-2">Important Information</h5>
                   <ul className="text-sm text-yellow-800 space-y-1">
-                    <li>• Please arrive 15 minutes before show time</li>
-                    <li>• Bring a valid ID for verification</li>
-                    <li>• No outside food or drinks allowed</li>
-                    <li>• Mobile tickets are accepted</li>
+                    <li> Please arrive 15 minutes before show time</li>
+                    <li> Bring a valid ID for verification</li>
+                    <li> No outside food or drinks allowed</li>
+                    <li> Mobile tickets are accepted</li>
                   </ul>
                 </div>
               </div>
