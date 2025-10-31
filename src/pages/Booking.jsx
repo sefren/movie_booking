@@ -28,10 +28,12 @@ import {
   VALIDATION_RULES,
   ERROR_MESSAGES,
 } from "../utils/constants";
+import { useAuth } from "../contexts/AuthContext";
 
 const Booking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
 
   // Check if ID is a MongoDB ObjectId (24 hex characters) or numeric TMDB ID
   const isMongoId = id && id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id);
@@ -46,9 +48,9 @@ const Booking = () => {
     new Date().toISOString().split("T")[0],
   );
   const [bookingForm, setBookingForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
   });
   const [formErrors, setFormErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
@@ -61,6 +63,17 @@ const Booking = () => {
   const [showtimesLoading, setShowtimesLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Auto-fill form when user logs in
+  useEffect(() => {
+    if (isAuthenticated() && user) {
+      setBookingForm({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      });
+    }
+  }, [user, isAuthenticated]);
 
   // Check backend availability and fetch movie
   useEffect(() => {
@@ -144,10 +157,7 @@ const Booking = () => {
         return;
       }
 
-      console.log(
-        " Loading occupied seats for showtime:",
-        selectedShowtime.id,
-      );
+      console.log(" Loading occupied seats for showtime:", selectedShowtime.id);
       try {
         const occupied = await fetchOccupiedSeats(
           id,
@@ -541,7 +551,7 @@ const Booking = () => {
                               {showtime.time}
                             </div>
                             <div className="text-xs opacity-80">
-                              {showtime.screenName}  {showtime.screenType}
+                              {showtime.screenName} {showtime.screenType}
                             </div>
                             <div className="text-xs opacity-70 mt-1">
                               {showtime.availableSeats} seats available

@@ -10,6 +10,7 @@ import Home from "./pages/Home";
 import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
 import Confirmation from "./pages/Confirmation";
+import Profile from "./pages/Profile";
 import { useState } from "react";
 
 function AppContent() {
@@ -24,6 +25,7 @@ function AppContent() {
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/confirmation" element={<Confirmation />} />
+          <Route path="/profile" element={<Profile />} />
           <Route
             path="*"
             element={

@@ -1,7 +1,8 @@
-import mongoose from 'mongoose';
-import Booking from '../models/Booking.js';
-import Movie from '../models/Movie.js';
-import Screen from '../models/Screen.js';
+import mongoose from "mongoose";
+import Booking from "../models/Booking.js";
+import Movie from "../models/Movie.js";
+import Screen from "../models/Screen.js";
+import User from "../models/User.js";
 
 // Generate unique booking ID
 const generateBookingId = () => {
@@ -17,12 +18,12 @@ export const getOccupiedSeats = async (req, res, next) => {
 
     const bookings = await Booking.find({
       movieId,
-      'showtime.date': new Date(date),
-      status: { $in: ['pending', 'confirmed'] },
+      "showtime.date": new Date(date),
+      status: { $in: ["pending", "confirmed"] },
     });
 
     const occupiedSeats = bookings.flatMap((booking) =>
-      booking.seats.map((seat) => seat.seatId)
+      booking.seats.map((seat) => seat.seatId),
     );
 
     res.status(200).json({
@@ -40,29 +41,30 @@ export const createBooking = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { movieId, screenId, showtime, seats, customerInfo, totalAmount } = req.body;
+    const { movieId, screenId, showtime, seats, customerInfo, totalAmount } =
+      req.body;
 
     // Validate inputs
     if (!seats || seats.length === 0) {
-      throw new Error('At least one seat must be selected');
+      throw new Error("At least one seat must be selected");
     }
 
     if (seats.length > 8) {
-      throw new Error('Maximum 8 seats can be booked at once');
+      throw new Error("Maximum 8 seats can be booked at once");
     }
 
     // Check if seats are already booked
     const seatIds = seats.map((s) => s.seatId);
     const existingBookings = await Booking.find({
       movieId,
-      'showtime.date': new Date(showtime.date),
-      'showtime.time': showtime.time,
-      'seats.seatId': { $in: seatIds },
-      status: { $in: ['pending', 'confirmed'] },
+      "showtime.date": new Date(showtime.date),
+      "showtime.time": showtime.time,
+      "seats.seatId": { $in: seatIds },
+      status: { $in: ["pending", "confirmed"] },
     }).session(session);
 
     if (existingBookings.length > 0) {
-      throw new Error('One or more selected seats are already booked');
+      throw new Error("One or more selected seats are already booked");
     }
 
     // Create booking with 10-minute lock
@@ -73,17 +75,18 @@ export const createBooking = async (req, res, next) => {
       [
         {
           bookingId,
+          userId: req.user?._id || null,
           movieId,
           screenId,
           showtime,
           seats,
           customerInfo,
           totalAmount,
-          status: 'pending',
+          status: "pending",
           lockedUntil,
         },
       ],
-      { session }
+      { session },
     );
 
     await session.commitTransaction();
@@ -91,7 +94,7 @@ export const createBooking = async (req, res, next) => {
     res.status(201).json({
       success: true,
       data: booking[0],
-      message: 'Seats locked. Complete payment within 10 minutes.',
+      message: "Seats locked. Complete payment within 10 minutes.",
     });
   } catch (error) {
     await session.abortTransaction();
@@ -111,27 +114,27 @@ export const confirmBooking = async (req, res, next) => {
     const booking = await Booking.findOne({ bookingId });
 
     if (!booking) {
-      const error = new Error('Booking not found');
+      const error = new Error("Booking not found");
       error.statusCode = 404;
       return next(error);
     }
 
-    if (booking.status !== 'pending') {
-      const error = new Error('Booking is not in pending state');
+    if (booking.status !== "pending") {
+      const error = new Error("Booking is not in pending state");
       error.statusCode = 400;
       return next(error);
     }
 
     if (new Date() > booking.lockedUntil) {
-      booking.status = 'cancelled';
+      booking.status = "cancelled";
       await booking.save();
-      const error = new Error('Booking timeout. Please try again.');
+      const error = new Error("Booking timeout. Please try again.");
       error.statusCode = 400;
       return next(error);
     }
 
-    booking.status = 'confirmed';
-    booking.paymentStatus = 'success';
+    booking.status = "confirmed";
+    booking.paymentStatus = "success";
     booking.transactionId = transactionId;
     booking.completedAt = new Date();
     await booking.save();
@@ -139,7 +142,7 @@ export const confirmBooking = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: booking,
-      message: 'Booking confirmed successfully!',
+      message: "Booking confirmed successfully!",
     });
   } catch (error) {
     next(error);
@@ -154,23 +157,23 @@ export const cancelBooking = async (req, res, next) => {
     const booking = await Booking.findOne({ bookingId });
 
     if (!booking) {
-      const error = new Error('Booking not found');
+      const error = new Error("Booking not found");
       error.statusCode = 404;
       return next(error);
     }
 
-    if (booking.status === 'cancelled') {
-      const error = new Error('Booking already cancelled');
+    if (booking.status === "cancelled") {
+      const error = new Error("Booking already cancelled");
       error.statusCode = 400;
       return next(error);
     }
 
-    booking.status = 'cancelled';
+    booking.status = "cancelled";
     await booking.save();
 
     res.status(200).json({
       success: true,
-      message: 'Booking cancelled successfully',
+      message: "Booking cancelled successfully",
     });
   } catch (error) {
     next(error);
@@ -183,11 +186,11 @@ export const getBookingById = async (req, res, next) => {
     const { bookingId } = req.params;
 
     const booking = await Booking.findOne({ bookingId })
-      .populate('movieId')
-      .populate('screenId');
+      .populate("movieId")
+      .populate("screenId");
 
     if (!booking) {
-      const error = new Error('Booking not found');
+      const error = new Error("Booking not found");
       error.statusCode = 404;
       return next(error);
     }
@@ -208,11 +211,11 @@ export const getAllBookings = async (req, res, next) => {
 
     const query = {};
     if (status) query.status = status;
-    if (email) query['customerInfo.email'] = email;
+    if (email) query["customerInfo.email"] = email;
 
     const bookings = await Booking.find(query)
-      .populate('movieId')
-      .populate('screenId')
+      .populate("movieId")
+      .populate("screenId")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);

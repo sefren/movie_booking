@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
@@ -7,14 +7,19 @@ const bookingSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
     movieId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Movie',
+      ref: "Movie",
       required: true,
     },
     screenId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Screen',
+      ref: "Screen",
       required: true,
     },
     showtime: {
@@ -52,13 +57,13 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-      default: 'pending',
+      enum: ["pending", "confirmed", "cancelled", "completed"],
+      default: "pending",
     },
     paymentStatus: {
       type: String,
-      enum: ['pending', 'success', 'failed', 'refunded'],
-      default: 'pending',
+      enum: ["pending", "success", "failed", "refunded"],
+      default: "pending",
     },
     transactionId: String,
     lockedUntil: Date,
@@ -66,12 +71,12 @@ const bookingSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 bookingSchema.index({ bookingId: 1 });
-bookingSchema.index({ movieId: 1, 'showtime.date': 1 });
+bookingSchema.index({ movieId: 1, "showtime.date": 1 });
 bookingSchema.index({ status: 1, createdAt: -1 });
 bookingSchema.index({ lockedUntil: 1 }, { expireAfterSeconds: 0 });
 
-export default mongoose.model('Booking', bookingSchema);
+export default mongoose.model("Booking", bookingSchema);

@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import {
   getOccupiedSeats,
   createBooking,
@@ -6,15 +6,16 @@ import {
   cancelBooking,
   getBookingById,
   getAllBookings,
-} from '../controllers/bookingController.js';
+} from "../controllers/bookingController.js";
+import { optionalAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get('/occupied-seats', getOccupiedSeats);
-router.get('/all', getAllBookings);
-router.post('/', createBooking);
-router.get('/:bookingId', getBookingById);
-router.post('/:bookingId/confirm', confirmBooking);
-router.post('/:bookingId/cancel', cancelBooking);
+router.get("/occupied-seats", getOccupiedSeats);
+router.get("/all", getAllBookings);
+router.post("/", optionalAuth, createBooking);
+router.get("/:bookingId", getBookingById);
+router.post("/:bookingId/confirm", confirmBooking);
+router.post("/:bookingId/cancel", cancelBooking);
 
 export default router;
