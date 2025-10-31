@@ -32,7 +32,7 @@ import {
 const Booking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { movie, loading: tmdbLoading, error: tmdbError } = useMovieDetails(id);
+  const { movie: tmdbMovie } = useMovieDetails(id);
 
   // Booking state
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -54,14 +54,14 @@ const Booking = () => {
   const [showtimes, setShowtimes] = useState([]);
   const [occupiedSeats, setOccupiedSeats] = useState([]);
   const [showtimesLoading, setShowtimesLoading] = useState(false);
-  const [movieLoading, setMovieLoading] = useState(true);
-  const [movieError, setMovieError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Check backend availability and fetch movie
   useEffect(() => {
     const checkAndFetch = async () => {
-      setMovieLoading(true);
-      setMovieError(null);
+      setLoading(true);
+      setError(null);
 
       const isAvailable = await checkBackendHealth();
       setUseBackend(isAvailable);
@@ -70,16 +70,13 @@ const Booking = () => {
         try {
           const movieData = await fetchMovieById(id);
           setBackendMovie(movieData);
-          setMovieLoading(false);
-        } catch (error) {
-          console.error("Failed to fetch movie from backend:", error);
-          setMovieError(error.message);
+        } catch (err) {
+          console.error("Failed to fetch movie from backend:", err);
+          setError(err.message);
           setUseBackend(false);
-          setMovieLoading(false);
         }
-      } else {
-        setMovieLoading(false);
       }
+      setLoading(false);
     };
     checkAndFetch();
   }, [id]);
@@ -150,19 +147,6 @@ const Booking = () => {
   };
 
   const availableDates = getAvailableDates();
-
-  // Get available showtimes for selected date
-  const getAvailableShowtimes = () => {
-    if (useBackend) {
-      return showtimes;
-    }
-    // Fallback to constant showtimes
-    return SHOW_TIMES.map((time) => ({
-      time,
-      screenName: "Screen 1",
-      screenType: "Standard",
-    }));
-  };
 
   // Handle seat selection
   const handleSeatSelect = (seatId, isSelecting) => {
@@ -276,9 +260,9 @@ const Booking = () => {
           _id: createdBooking._id,
           movie: {
             id: backendMovie?._id || id,
-            title: backendMovie?.title || movie?.title,
-            poster_path: backendMovie?.posterPath || movie?.poster_path,
-            runtime: backendMovie?.duration || movie?.runtime,
+            title: backendMovie?.title || tmdbMovie?.title,
+            poster_path: backendMovie?.posterPath || tmdbMovie?.poster_path,
+            runtime: backendMovie?.duration || tmdbMovie?.runtime,
           },
           showtime: selectedShowtime,
           date: selectedDate,
@@ -296,10 +280,10 @@ const Booking = () => {
 
         bookingData = {
           movie: {
-            id: movie?.id,
-            title: movie?.title,
-            poster_path: movie?.poster_path,
-            runtime: movie?.runtime,
+            id: tmdbMovie?.id,
+            title: tmdbMovie?.title,
+            poster_path: tmdbMovie?.poster_path,
+            runtime: tmdbMovie?.runtime,
           },
           showtime: selectedShowtime,
           date: selectedDate,
@@ -333,7 +317,7 @@ const Booking = () => {
     );
   }
 
-  if (error || !movie) {
+  if (error || (!displayMovie && !tmdbMovie)) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -351,6 +335,9 @@ const Booking = () => {
       </div>
     );
   }
+
+  // Use backend movie if available, otherwise fallback to TMDB
+  const displayMovie = useBackend && backendMovie ? backendMovie : tmdbMovie;
 
   const posterUrl = getImageUrl(
     displayMovie?.posterPath || displayMovie?.poster_path,
@@ -406,10 +393,10 @@ const Booking = () => {
                   </div>
                 )}
 
-                {movieRuntime && (
+                {movieDuration && (
                   <div className="flex items-center space-x-1">
                     <Clock className="w-4 h-4" />
-                    <span>{movieRuntime} min</span>
+                    <span>{movieDuration} min</span>
                   </div>
                 )}
 
@@ -636,7 +623,7 @@ const Booking = () => {
                 <div className="flex justify-between">
                   <span className="text-primary-600">Movie:</span>
                   <span className="font-medium text-primary-900">
-                    {movie.title}
+                    {movieTitle}
                   </span>
                 </div>
 
