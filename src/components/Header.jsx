@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, User, Menu, X, Film } from "lucide-react";
+import { Search, User, Menu, X, Film, LogOut } from "lucide-react";
 import { useDebounce } from "../hooks/useDebounce";
 import { getImageUrl } from "../utils/api";
 import {
@@ -10,6 +10,8 @@ import {
 } from "../utils/backendApi";
 import { searchMovies, formatMovieData } from "../utils/api";
 import { API_CONFIG } from "../utils/constants";
+import { useAuth } from "../contexts/AuthContext";
+import AuthModal from "./AuthModal";
 
 const Header = ({ showSearch = true }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -18,8 +20,10 @@ const Header = ({ showSearch = true }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [useBackend, setUseBackend] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const searchRef = useRef(null);
   const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuth();
 
   const debouncedSearchQuery = useDebounce(
     searchQuery,
@@ -102,6 +106,19 @@ const Header = ({ showSearch = true }) => {
     setSearchQuery("");
     setSearchResults([]);
     navigate(`/movie/${movieId}`);
+  };
+
+  const handleAuthClick = () => {
+    if (isAuthenticated()) {
+      navigate("/profile");
+    } else {
+      setShowAuthModal(true);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
   return (
@@ -213,10 +230,32 @@ const Header = ({ showSearch = true }) => {
           {/* Right Side */}
           <div className="flex items-center space-x-4">
             {/* User Profile - Desktop */}
-            <button className="hidden md:flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors duration-200">
-              <User className="h-5 w-5" />
-              <span className="text-sm font-medium">Profile</span>
-            </button>
+            {isAuthenticated() ? (
+              <div className="hidden md:flex items-center space-x-4">
+                <button
+                  onClick={handleAuthClick}
+                  className="flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
+                >
+                  <User className="h-5 w-5" />
+                  <span className="text-sm font-medium">{user?.name}</span>
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="text-sm font-medium">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="hidden md:flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
+              >
+                <User className="h-5 w-5" />
+                <span className="text-sm font-medium">Login</span>
+              </button>
+            )}
 
             {/* Mobile menu button */}
             <button
@@ -307,14 +346,52 @@ const Header = ({ showSearch = true }) => {
 
             {/* Mobile Profile */}
             <nav className="space-y-1">
-              <button className="w-full text-left px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-900 hover:bg-primary-50 transition-colors duration-200 flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <span>Profile</span>
-              </button>
+              {isAuthenticated() ? (
+                <>
+                  <button
+                    onClick={() => {
+                      handleAuthClick();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-900 hover:bg-primary-50 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>{user?.name}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-900 hover:bg-primary-50 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowAuthModal(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-900 hover:bg-primary-50 transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <User className="h-4 w-4" />
+                  <span>Login</span>
+                </button>
+              )}
             </nav>
           </div>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode="login"
+      />
     </header>
   );
 };
