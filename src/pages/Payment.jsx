@@ -17,6 +17,146 @@ import { getImageUrl } from "../utils/api";
 import { confirmBooking } from "../utils/backendApi";
 import { THEATER_CONFIG, PAYMENT_STATUS } from "../utils/constants";
 
+// ============================================================================
+// CARD VALIDATION HELPERS
+// ============================================================================
+
+/**
+ * Validate credit card number using Luhn algorithm
+ */
+const validateCardNumber = (cardNumber) => {
+  const digits = cardNumber.replace(/\s/g, "");
+
+  if (!/^\d{13,19}$/.test(digits)) {
+    return { valid: false, message: "Card number must be 13-19 digits" };
+  }
+
+  // Luhn algorithm
+  let sum = 0;
+  let shouldDouble = false;
+
+  // Loop from right to left
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits[i], 10);
+
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  if (sum % 10 !== 0) {
+    return { valid: false, message: "Invalid card number" };
+  }
+
+  return { valid: true, message: "" };
+};
+
+/**
+ * Detect card type from number
+ */
+const detectCardType = (cardNumber) => {
+  const digits = cardNumber.replace(/\s/g, "");
+
+  if (/^4/.test(digits)) return "Visa";
+  if (/^5[1-5]/.test(digits)) return "Mastercard";
+  if (/^3[47]/.test(digits)) return "American Express";
+  if (/^6(?:011|5)/.test(digits)) return "Discover";
+  if (/^35/.test(digits)) return "JCB";
+
+  return "Unknown";
+};
+
+/**
+ * Validate expiry date
+ */
+const validateExpiryDate = (expiryDate) => {
+  if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+    return { valid: false, message: "Enter valid format (MM/YY)" };
+  }
+
+  const [month, year] = expiryDate.split("/").map((num) => parseInt(num, 10));
+
+  // Validate month
+  if (month < 1 || month > 12) {
+    return { valid: false, message: "Invalid month (01-12)" };
+  }
+
+  // Validate year (check if card is expired)
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear() % 100; // Get last 2 digits
+  const currentMonth = currentDate.getMonth() + 1; // 0-indexed
+
+  if (year < currentYear) {
+    return { valid: false, message: "Card has expired" };
+  }
+
+  if (year === currentYear && month < currentMonth) {
+    return { valid: false, message: "Card has expired" };
+  }
+
+  // Check if expiry is too far in future (more than 10 years)
+  if (year > currentYear + 10) {
+    return { valid: false, message: "Expiry year seems invalid" };
+  }
+
+  return { valid: true, message: "" };
+};
+
+/**
+ * Validate CVV
+ */
+const validateCVV = (cvv, cardType) => {
+  // American Express uses 4-digit CVV, others use 3
+  const requiredLength = cardType === "American Express" ? 4 : 3;
+
+  if (!/^\d+$/.test(cvv)) {
+    return { valid: false, message: "CVV must contain only digits" };
+  }
+
+  if (cvv.length !== requiredLength) {
+    return {
+      valid: false,
+      message: `CVV must be ${requiredLength} digits for ${cardType}`,
+    };
+  }
+
+  return { valid: true, message: "" };
+};
+
+/**
+ * Validate cardholder name
+ */
+const validateCardholderName = (name) => {
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    return { valid: false, message: "Cardholder name is required" };
+  }
+
+  if (trimmedName.length < 2) {
+    return { valid: false, message: "Name must be at least 2 characters" };
+  }
+
+  if (!/^[a-zA-Z\s\-\.]+$/.test(trimmedName)) {
+    return {
+      valid: false,
+      message: "Name can only contain letters, spaces, hyphens, and periods",
+    };
+  }
+
+  return { valid: true, message: "" };
+};
+
+// ============================================================================
+// PAYMENT COMPONENT
+// ============================================================================
+
 const Payment = () => {
   const navigate = useNavigate();
   const [bookingData, setBookingData] = useState(null);
@@ -27,6 +167,7 @@ const Payment = () => {
     cvv: "",
     cardholderName: "",
   });
+  const [cardType, setCardType] = useState("Unknown");
   const [paymentStatus, setPaymentStatus] = useState(PAYMENT_STATUS.PENDING);
   const [isProcessing, setIsProcessing] = useState(false);
   const [formErrors, setFormErrors] = useState({});
@@ -42,6 +183,15 @@ const Payment = () => {
     }
   }, [navigate]);
 
+  // Detect card type as user types
+  useEffect(() => {
+    if (paymentForm.cardNumber) {
+      setCardType(detectCardType(paymentForm.cardNumber));
+    } else {
+      setCardType("Unknown");
+    }
+  }, [paymentForm.cardNumber]);
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -49,23 +199,31 @@ const Payment = () => {
 
     // Format card number
     if (name === "cardNumber") {
-      formattedValue = value
-        .replace(/\s/g, "")
-        .replace(/(.{4})/g, "$1 ")
-        .trim();
-      if (formattedValue.length > 19) return; // Max 16 digits + 3 spaces
+      // Remove all non-digits first
+      const digitsOnly = value.replace(/\D/g, "");
+
+      // Limit to 16 digits (most common card length)
+      if (digitsOnly.length > 16) return;
+
+      // Format with spaces every 4 digits
+      formattedValue = digitsOnly.replace(/(.{4})/g, "$1 ").trim();
     }
 
     // Format expiry date
     if (name === "expiryDate") {
-      formattedValue = value.replace(/\D/g, "").replace(/(.{2})/, "$1/");
+      formattedValue = value.replace(/\D/g, "");
+      if (formattedValue.length >= 2) {
+        formattedValue =
+          formattedValue.substring(0, 2) + "/" + formattedValue.substring(2, 4);
+      }
       if (formattedValue.length > 5) return; // MM/YY
     }
 
-    // Format CVV
+    // Format CVV (3 or 4 digits depending on card type)
     if (name === "cvv") {
       formattedValue = value.replace(/\D/g, "");
-      if (formattedValue.length > 3) return; // Max 3 digits
+      const maxLength = cardType === "American Express" ? 4 : 3;
+      if (formattedValue.length > maxLength) return;
     }
 
     setPaymentForm((prev) => ({
@@ -88,30 +246,27 @@ const Payment = () => {
 
     if (paymentMethod === "card") {
       // Card number validation
-      const cardNumber = paymentForm.cardNumber.replace(/\s/g, "");
-      if (!cardNumber) {
-        errors.cardNumber = "Card number is required";
-      } else if (cardNumber.length < 16) {
-        errors.cardNumber = "Card number must be 16 digits";
+      const cardValidation = validateCardNumber(paymentForm.cardNumber);
+      if (!cardValidation.valid) {
+        errors.cardNumber = cardValidation.message;
       }
 
       // Expiry date validation
-      if (!paymentForm.expiryDate) {
-        errors.expiryDate = "Expiry date is required";
-      } else if (!/^\d{2}\/\d{2}$/.test(paymentForm.expiryDate)) {
-        errors.expiryDate = "Enter valid expiry date (MM/YY)";
+      const expiryValidation = validateExpiryDate(paymentForm.expiryDate);
+      if (!expiryValidation.valid) {
+        errors.expiryDate = expiryValidation.message;
       }
 
       // CVV validation
-      if (!paymentForm.cvv) {
-        errors.cvv = "CVV is required";
-      } else if (paymentForm.cvv.length !== 3) {
-        errors.cvv = "CVV must be 3 digits";
+      const cvvValidation = validateCVV(paymentForm.cvv, cardType);
+      if (!cvvValidation.valid) {
+        errors.cvv = cvvValidation.message;
       }
 
       // Cardholder name validation
-      if (!paymentForm.cardholderName.trim()) {
-        errors.cardholderName = "Cardholder name is required";
+      const nameValidation = validateCardholderName(paymentForm.cardholderName);
+      if (!nameValidation.valid) {
+        errors.cardholderName = nameValidation.message;
       }
     }
 
@@ -146,7 +301,7 @@ const Payment = () => {
               bookingData.bookingId,
             );
             await confirmBooking(bookingData.bookingId, transactionId);
-            console.log(" Booking confirmed with backend");
+            console.log("✅ Booking confirmed with backend");
           } catch (error) {
             console.error("Failed to confirm booking with backend:", error);
             // Continue anyway for demo purposes
@@ -332,20 +487,31 @@ const Payment = () => {
                         >
                           Card Number
                         </label>
-                        <input
-                          type="text"
-                          id="cardNumber"
-                          name="cardNumber"
-                          value={paymentForm.cardNumber}
-                          onChange={handleInputChange}
-                          placeholder="1234 5678 9012 3456"
-                          className={`input-field ${formErrors.cardNumber ? "border-red-500" : ""}`}
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            id="cardNumber"
+                            name="cardNumber"
+                            value={paymentForm.cardNumber}
+                            onChange={handleInputChange}
+                            placeholder="1234 5678 9012 3456"
+                            className={`input-field pr-20 ${formErrors.cardNumber ? "border-red-500" : ""}`}
+                          />
+                          {cardType !== "Unknown" && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-primary-600 bg-primary-50 px-2 py-1 rounded">
+                              {cardType}
+                            </div>
+                          )}
+                        </div>
                         {formErrors.cardNumber && (
                           <p className="mt-1 text-sm text-red-600">
                             {formErrors.cardNumber}
                           </p>
                         )}
+                        <p className="mt-1 text-xs text-primary-500">
+                          Test cards: 4532015112830366 (Visa) or
+                          5425233430109903 (Mastercard)
+                        </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -385,7 +551,9 @@ const Payment = () => {
                             name="cvv"
                             value={paymentForm.cvv}
                             onChange={handleInputChange}
-                            placeholder="123"
+                            placeholder={
+                              cardType === "American Express" ? "1234" : "123"
+                            }
                             className={`input-field ${formErrors.cvv ? "border-red-500" : ""}`}
                           />
                           {formErrors.cvv && (

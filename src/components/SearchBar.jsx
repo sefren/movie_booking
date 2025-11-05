@@ -26,7 +26,7 @@ const SearchBar = ({
     if (onSearch) {
       onSearch(debouncedSearchTerm);
     }
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, onSearch]);
 
   const handleInputChange = (e) => {
     setSearchTerm(e.target.value);

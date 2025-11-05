@@ -1,17 +1,12 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
 import Confirmation from "./pages/Confirmation";
 import Profile from "./pages/Profile";
-import { useState } from "react";
+import MovieDetails from "./pages/MovieDetail";
 
 function AppContent() {
   return (
@@ -21,7 +16,7 @@ function AppContent() {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/movie/:id" element={<Booking />} />
+          <Route path="/movie/:id" element={<MovieDetails />} />
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/confirmation" element={<Confirmation />} />

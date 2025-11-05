@@ -152,22 +152,23 @@ const Booking = () => {
   // Load occupied seats when showtime changes
   useEffect(() => {
     const loadOccupiedSeats = async () => {
-      if (!selectedShowtime?.id || !selectedDate || !useBackend) {
-        console.log(" Skipping occupied seats load");
+      if (!selectedShowtime || !selectedDate || !useBackend) {
+        console.log("Skipping occupied seats load");
         return;
       }
 
-      console.log(" Loading occupied seats for showtime:", selectedShowtime.id);
+      console.log("Loading occupied seats for showtime:", selectedShowtime);
       try {
+        // Pass the full showtime object (not just ID)
         const occupied = await fetchOccupiedSeats(
           id,
           selectedDate,
-          selectedShowtime.id,
+          selectedShowtime, // This object contains time and screenId
         );
-        console.log(" Occupied seats loaded:", occupied.length);
+        console.log("Occupied seats loaded:", occupied.length);
         setOccupiedSeats(occupied);
       } catch (err) {
-        console.error(" Failed to load occupied seats:", err);
+        console.error("❌ Failed to load occupied seats:", err);
         setOccupiedSeats([]);
       }
     };
@@ -418,22 +419,22 @@ const Booking = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="bg-primary-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors mb-4"
+            className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors mb-3 sm:mb-4"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-xs sm:text-sm md:text-base">Back</span>
           </button>
 
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6">
             {/* Movie Poster */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 mx-auto sm:mx-0">
               <img
                 src={posterUrl}
                 alt={movieTitle}
-                className="w-48 h-72 object-cover border border-white/20"
+                className="w-28 h-40 xs:w-32 xs:h-48 sm:w-36 sm:h-54 md:w-40 md:h-60 lg:w-48 lg:h-72 object-cover border border-white/20 rounded-sm"
                 onError={(e) => {
                   e.target.src = "/placeholder-movie-poster.jpg";
                 }}
@@ -441,40 +442,40 @@ const Booking = () => {
             </div>
 
             {/* Movie Info */}
-            <div className="flex-1">
-              <h1 className="text-3xl lg:text-4xl font-bold mb-2">
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="text-xl xs:text-2xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2">
                 {movieTitle}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-4 text-white/80 mb-4">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm md:text-base text-white/80 mb-2 sm:mb-3 md:mb-4">
                 {movieRating && (
                   <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
                     <span>{movieRating.toFixed(1)}</span>
                   </div>
                 )}
 
                 {movieDuration && (
                   <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{movieDuration} min</span>
                   </div>
                 )}
 
                 {movieReleaseDate && (
                   <div className="flex items-center space-x-1">
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{new Date(movieReleaseDate).getFullYear()}</span>
                   </div>
                 )}
               </div>
 
               {movieGenres && movieGenres.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 sm:gap-2 mb-3 sm:mb-4">
                   {movieGenres.slice(0, 3).map((genre, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-white/20 text-white text-sm font-medium border border-white/30"
+                      className="px-2 sm:px-3 py-0.5 sm:py-1 bg-white/20 text-white text-xs sm:text-sm font-medium border border-white/30 rounded-sm"
                     >
                       {typeof genre === "string" ? genre : genre.name}
                     </span>
@@ -483,7 +484,7 @@ const Booking = () => {
               )}
 
               {movieOverview && (
-                <p className="text-white/90 leading-relaxed max-w-3xl">
+                <p className="text-xs sm:text-sm md:text-base text-white/90 leading-relaxed line-clamp-3 sm:line-clamp-4 md:line-clamp-none">
                   {movieOverview}
                 </p>
               )}
@@ -493,68 +494,68 @@ const Booking = () => {
       </div>
 
       {/* Booking Form */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Left Column - Date, Time & Seats */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 md:space-y-8">
             {/* Date & Time Selection */}
-            <div className="bg-white border border-primary-200 p-6">
-              <h2 className="text-xl font-semibold text-primary-900 mb-6">
+            <div className="bg-white border border-primary-200 rounded-lg p-3 sm:p-4 md:p-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-primary-900 mb-3 sm:mb-4 md:mb-6">
                 Select Date & Time
               </h2>
 
               {/* Date Selection */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-primary-700 mb-3">
+              <div className="mb-4 sm:mb-6">
+                <label className="block text-xs sm:text-sm font-medium text-primary-700 mb-2 sm:mb-3">
                   Date
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-1.5 sm:gap-2">
                   {availableDates.map((date) => (
                     <button
                       key={date.value}
                       onClick={() => setSelectedDate(date.value)}
-                      className={`p-3 text-sm font-medium border transition-all duration-200 ${
+                      className={`p-1.5 sm:p-2 md:p-3 text-center border rounded transition-all duration-200 text-xs sm:text-sm ${
                         selectedDate === date.value
-                          ? "bg-primary-900 text-white border-primary-900"
-                          : "bg-white text-primary-600 border-primary-200 hover:border-primary-900"
+                          ? "bg-primary-900 text-white border-primary-900 shadow-md"
+                          : "bg-white text-primary-600 border-primary-200 hover:border-primary-900 hover:shadow-sm"
                       }`}
                     >
-                      {date.label}
+                      <div className="font-medium">{date.label}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Time Selection */}
+              {/* Showtime Selection */}
               <div>
-                <label className="block text-sm font-medium text-primary-700 mb-3">
+                <label className="block text-xs sm:text-sm font-medium text-primary-700 mb-2 sm:mb-3">
                   Showtime {useBackend && showtimesLoading && "(Loading...)"}
                 </label>
                 {useBackend && showtimes.length === 0 && !showtimesLoading ? (
-                  <p className="text-primary-500 text-sm p-4 bg-primary-50 border border-primary-200">
+                  <p className="text-primary-500 text-xs sm:text-sm p-3 sm:p-4 bg-primary-50 border border-primary-200 rounded">
                     No showtimes available for this date
                   </p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                     {useBackend
                       ? showtimes.map((showtime) => (
                           <button
                             key={showtime.id}
                             onClick={() => setSelectedShowtime(showtime)}
-                            className={`p-4 text-left border transition-all duration-200 ${
+                            className={`p-2 sm:p-3 md:p-4 text-left border rounded transition-all duration-200 ${
                               selectedShowtime?.id === showtime.id
-                                ? "bg-primary-900 text-white border-primary-900"
-                                : "bg-white text-primary-600 border-primary-200 hover:border-primary-900"
+                                ? "bg-primary-900 text-white border-primary-900 shadow-md"
+                                : "bg-white text-primary-600 border-primary-200 hover:border-primary-900 hover:shadow-sm"
                             }`}
                           >
-                            <div className="font-semibold text-base mb-1">
+                            <div className="font-semibold text-xs sm:text-sm md:text-base mb-0.5 sm:mb-1">
                               {showtime.time}
                             </div>
                             <div className="text-xs opacity-80">
                               {showtime.screenName} {showtime.screenType}
                             </div>
-                            <div className="text-xs opacity-70 mt-1">
-                              {showtime.availableSeats} seats available
+                            <div className="text-xs opacity-70 mt-0.5 sm:mt-1">
+                              {showtime.availableSeats} seats
                             </div>
                           </button>
                         ))
@@ -562,10 +563,10 @@ const Booking = () => {
                           <button
                             key={time}
                             onClick={() => setSelectedShowtime({ time })}
-                            className={`p-3 text-sm font-medium border transition-all duration-200 ${
+                            className={`p-2 sm:p-3 text-xs sm:text-sm font-medium border rounded transition-all duration-200 ${
                               selectedShowtime?.time === time
-                                ? "bg-primary-900 text-white border-primary-900"
-                                : "bg-white text-primary-600 border-primary-200 hover:border-primary-900"
+                                ? "bg-primary-900 text-white border-primary-900 shadow-md"
+                                : "bg-white text-primary-600 border-primary-200 hover:border-primary-900 hover:shadow-sm"
                             }`}
                           >
                             {time}
@@ -577,12 +578,12 @@ const Booking = () => {
             </div>
 
             {/* Seat Selection */}
-            <div className="bg-white border border-primary-200 p-6">
-              <h2 className="text-xl font-semibold text-primary-900 mb-6">
+            <div className="bg-white border border-primary-200 rounded-lg p-3 sm:p-4 md:p-6 overflow-x-auto">
+              <h3 className="text-sm sm:text-base md:text-lg font-semibold text-primary-900 mb-2 sm:mb-3 md:mb-4">
                 Select Seats
-              </h2>
+              </h3>
               {formErrors.seats && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm">
+                <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-50 border border-red-200 rounded text-red-700 text-xs sm:text-sm">
                   {formErrors.seats}
                 </div>
               )}
@@ -595,18 +596,18 @@ const Booking = () => {
           </div>
 
           {/* Right Column - Customer Info & Summary */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Customer Information */}
-            <div className="bg-white border border-primary-200 p-6">
-              <h2 className="text-xl font-semibold text-primary-900 mb-6">
+            <div className="bg-white border border-primary-200 rounded-lg p-3 sm:p-4 md:p-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-primary-900 mb-3 sm:mb-4 md:mb-6">
                 Customer Information
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4 md:space-y-6">
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-primary-700 mb-2"
+                    className="block text-xs sm:text-sm font-medium text-primary-700 mb-1.5 sm:mb-2"
                   >
                     Full Name *
                   </label>
@@ -616,11 +617,13 @@ const Booking = () => {
                     name="name"
                     value={bookingForm.name}
                     onChange={handleInputChange}
-                    className={`input-field ${formErrors.name ? "border-red-500" : ""}`}
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all ${
+                      formErrors.name ? "border-red-500" : "border-primary-200"
+                    }`}
                     placeholder="Enter your full name"
                   />
                   {formErrors.name && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-xs sm:text-sm text-red-600">
                       {formErrors.name}
                     </p>
                   )}
@@ -629,7 +632,7 @@ const Booking = () => {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-primary-700 mb-2"
+                    className="block text-xs sm:text-sm font-medium text-primary-700 mb-1.5 sm:mb-2"
                   >
                     Email Address *
                   </label>
@@ -639,11 +642,13 @@ const Booking = () => {
                     name="email"
                     value={bookingForm.email}
                     onChange={handleInputChange}
-                    className={`input-field ${formErrors.email ? "border-red-500" : ""}`}
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all ${
+                      formErrors.email ? "border-red-500" : "border-primary-200"
+                    }`}
                     placeholder="Enter your email"
                   />
                   {formErrors.email && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-xs sm:text-sm text-red-600">
                       {formErrors.email}
                     </p>
                   )}
@@ -652,7 +657,7 @@ const Booking = () => {
                 <div>
                   <label
                     htmlFor="phone"
-                    className="block text-sm font-medium text-primary-700 mb-2"
+                    className="block text-xs sm:text-sm font-medium text-primary-700 mb-1.5 sm:mb-2"
                   >
                     Phone Number *
                   </label>
@@ -662,11 +667,13 @@ const Booking = () => {
                     name="phone"
                     value={bookingForm.phone}
                     onChange={handleInputChange}
-                    className={`input-field ${formErrors.phone ? "border-red-500" : ""}`}
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all ${
+                      formErrors.phone ? "border-red-500" : "border-primary-200"
+                    }`}
                     placeholder="Enter your phone number"
                   />
                   {formErrors.phone && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-xs sm:text-sm text-red-600">
                       {formErrors.phone}
                     </p>
                   )}
@@ -675,25 +682,24 @@ const Booking = () => {
             </div>
 
             {/* Booking Summary */}
-            <div className="bg-primary-50 border border-primary-200 p-6 sticky top-4">
-              <h3 className="text-lg font-semibold text-primary-900 mb-4">
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 sm:p-4 md:p-6 lg:sticky lg:top-4">
+              <h3 className="text-sm sm:text-base md:text-lg font-semibold text-primary-900 mb-2 sm:mb-3 md:mb-4">
                 Booking Summary
               </h3>
 
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
+              <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                <div className="flex justify-between items-start">
                   <span className="text-primary-600">Movie:</span>
-                  <span className="font-medium text-primary-900">
+                  <span className="font-medium text-primary-900 text-right max-w-[60%]">
                     {movieTitle}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-primary-600">Date:</span>
-                  <span className="font-medium text-primary-900">
+                  <span className="font-medium text-primary-900 text-right">
                     {new Date(selectedDate).toLocaleDateString("en-US", {
                       weekday: "short",
-                      year: "numeric",
                       month: "short",
                       day: "numeric",
                     })}
@@ -707,9 +713,9 @@ const Booking = () => {
                   </span>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between items-start">
                   <span className="text-primary-600">Seats:</span>
-                  <span className="font-medium text-primary-900">
+                  <span className="font-medium text-primary-900 text-right max-w-[60%] break-words">
                     {selectedSeats.length > 0
                       ? selectedSeats.join(", ")
                       : "None selected"}
@@ -719,21 +725,22 @@ const Booking = () => {
                 <div className="flex justify-between">
                   <span className="text-primary-600">Quantity:</span>
                   <span className="font-medium text-primary-900">
-                    {selectedSeats.length} tickets
+                    {selectedSeats.length}{" "}
+                    {selectedSeats.length === 1 ? "ticket" : "tickets"}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-primary-600">Price per ticket:</span>
+                  <span className="text-primary-600">Price/ticket:</span>
                   <span className="font-medium text-primary-900">
                     {THEATER_CONFIG.currencySymbol}
                     {THEATER_CONFIG.pricePerSeat.toFixed(2)}
                   </span>
                 </div>
 
-                <div className="divider my-4"></div>
+                <div className="border-t border-primary-300 my-2 sm:my-3"></div>
 
-                <div className="flex justify-between text-lg font-semibold">
+                <div className="flex justify-between text-base sm:text-lg font-semibold pt-1">
                   <span className="text-primary-900">Total:</span>
                   <span className="text-primary-900">
                     {THEATER_CONFIG.currencySymbol}
@@ -745,22 +752,22 @@ const Booking = () => {
               <button
                 onClick={handleBooking}
                 disabled={isProcessing || selectedSeats.length === 0}
-                className="w-full mt-6 btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="w-full mt-4 sm:mt-6 px-4 py-2.5 sm:py-3 bg-primary-900 text-white rounded-md font-medium text-xs sm:text-sm md:text-base hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-all shadow-sm hover:shadow-md"
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                     <span>Processing...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-4 h-4" />
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Proceed to Payment</span>
                   </>
                 )}
               </button>
 
-              <p className="text-xs text-primary-500 mt-3 text-center">
+              <p className="text-xs text-primary-500 mt-2 sm:mt-3 text-center leading-relaxed">
                 By proceeding, you agree to our terms and conditions
               </p>
             </div>

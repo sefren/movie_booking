@@ -53,7 +53,7 @@ const SeatGrid = ({
     const isHovered = hoveredSeat === seat.id;
 
     const baseClasses =
-      "w-8 h-8 m-0.5 text-xs font-medium flex items-center justify-center transition-all duration-150 border";
+      "w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 m-0.5 text-[10px] sm:text-xs font-medium flex items-center justify-center transition-all duration-150 border";
 
     switch (status) {
       case SEAT_STATUS.SELECTED:
@@ -82,30 +82,32 @@ const SeatGrid = ({
 
   // Create aisle space
   const createAisle = (rowIndex) => (
-    <div key={`aisle-${rowIndex}`} className="w-4" />
+    <div key={`aisle-${rowIndex}`} className="w-2 sm:w-3 md:w-4" />
   );
 
   return (
     <div className={`bg-white ${className}`}>
       {/* Screen */}
-      <div className="mb-8">
-        <div className="text-center mb-4">
-          <div className="inline-block bg-primary-100 px-8 py-2 border border-primary-200">
-            <span className="text-sm font-medium text-primary-700">SCREEN</span>
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <div className="text-center mb-2 sm:mb-4">
+          <div className="inline-block bg-primary-100 px-4 sm:px-6 md:px-8 py-1 sm:py-2 border border-primary-200">
+            <span className="text-xs sm:text-sm font-medium text-primary-700">
+              SCREEN
+            </span>
           </div>
         </div>
-        <div className="h-1 bg-gradient-to-r from-transparent via-primary-300 to-transparent rounded"></div>
+        <div className="h-0.5 sm:h-1 bg-gradient-to-r from-transparent via-primary-300 to-transparent rounded"></div>
       </div>
 
       {/* Seat Grid */}
-      <div className="flex flex-col items-center space-y-2">
+      <div className="flex flex-col items-center space-y-1 sm:space-y-1.5 md:space-y-2 overflow-x-auto">
         {seatGrid.map((row, rowIndex) => (
           <div
             key={THEATER_CONFIG.rows[rowIndex]}
             className="flex items-center"
           >
             {/* Row Label */}
-            <div className="w-8 text-center text-sm font-medium text-primary-600 mr-4">
+            <div className="w-6 sm:w-7 md:w-8 text-center text-xs sm:text-sm font-medium text-primary-600 mr-2 sm:mr-3 md:mr-4 flex-shrink-0">
               {THEATER_CONFIG.rows[rowIndex]}
             </div>
 
@@ -136,7 +138,7 @@ const SeatGrid = ({
             </div>
 
             {/* Row Label (Right) */}
-            <div className="w-8 text-center text-sm font-medium text-primary-600 ml-4">
+            <div className="w-6 sm:w-7 md:w-8 text-center text-xs sm:text-sm font-medium text-primary-600 ml-2 sm:ml-3 md:ml-4 flex-shrink-0">
               {THEATER_CONFIG.rows[rowIndex]}
             </div>
           </div>
@@ -144,18 +146,18 @@ const SeatGrid = ({
       </div>
 
       {/* Legend */}
-      <div className="mt-8 pt-6 border-t border-primary-100">
-        <div className="flex flex-wrap justify-center gap-6 text-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 seat-available"></div>
+      <div className="mt-4 sm:mt-6 md:mt-8 pt-4 sm:pt-6 border-t border-primary-100">
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm">
+          <div className="flex items-center space-x-1.5 sm:space-x-2">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 seat-available"></div>
             <span className="text-primary-600">Available</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 seat-selected"></div>
+          <div className="flex items-center space-x-1.5 sm:space-x-2">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 seat-selected"></div>
             <span className="text-primary-600">Selected</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 seat-occupied"></div>
+          <div className="flex items-center space-x-1.5 sm:space-x-2">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 seat-occupied"></div>
             <span className="text-primary-600">Occupied</span>
           </div>
         </div>
@@ -163,22 +165,22 @@ const SeatGrid = ({
 
       {/* Selection Summary */}
       {selectedSeats.length > 0 && (
-        <div className="mt-6 p-4 bg-primary-50 border border-primary-200">
+        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-primary-50 border border-primary-200">
           <div className="text-center">
-            <h4 className="text-sm font-medium text-primary-900 mb-2">
+            <h4 className="text-xs sm:text-sm font-medium text-primary-900 mb-2">
               Selected Seats ({selectedSeats.length})
             </h4>
             <div className="flex flex-wrap justify-center gap-2">
               {selectedSeats.map((seatId) => (
                 <span
                   key={seatId}
-                  className="inline-block px-2 py-1 bg-primary-900 text-white text-xs font-medium"
+                  className="inline-block px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary-900 text-white text-[10px] sm:text-xs font-medium"
                 >
                   {seatId}
                 </span>
               ))}
             </div>
-            <div className="mt-2 text-sm text-primary-600">
+            <div className="mt-2 text-xs sm:text-sm text-primary-600">
               Total: {THEATER_CONFIG.currencySymbol}
               {(selectedSeats.length * THEATER_CONFIG.pricePerSeat).toFixed(2)}
             </div>

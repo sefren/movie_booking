@@ -302,7 +302,7 @@ export const formatBackendMovie = (movie) => {
     title: movie.title,
     overview: movie.description,
     posterPath: movie.posterPath,
-    backdropPath: movie.backdropPath,
+    backdropPath: movie.backdrop_path,
     releaseDate: movie.releaseDate,
     rating: movie.rating,
     voteCount: 0,

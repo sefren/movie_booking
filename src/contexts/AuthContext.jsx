@@ -1,7 +1,8 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 
 const AuthContext = createContext(null);
 
+// Add this custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -74,3 +75,5 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthContext;
