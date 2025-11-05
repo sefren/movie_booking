@@ -31,7 +31,7 @@ async function fetchMoviesFromTMDB() {
 
     console.log('Fetching movies from TMDB...');
 
-    for (let page = 1; page <= pages; page++) {
+    outerLoop: for (let page = 1; page <= pages; page++) {
         try {
             const response = await retryApiCall(() =>
                 axios.get(`${TMDB_BASE_URL}/movie/popular`, {
@@ -40,13 +40,13 @@ async function fetchMoviesFromTMDB() {
                 })
             );
 
-            console.log(`Fetching page ${page}/${pages}...`);
+            console.log(`Fetching page ${page}/${pages} (${movies.length}/${maxMovies} movies so far)...`);
 
             for (const movie of response.data.results) {
                 // Stop if we've reached the maximum number of movies
                 if (movies.length >= maxMovies) {
-                    console.log(`Reached maximum of ${maxMovies} movies for testing.`);
-                    break;
+                    console.log(`\n✓ Reached maximum of ${maxMovies} movies!`);
+                    break outerLoop;
                 }
 
                 try {
@@ -79,6 +79,13 @@ async function fetchMoviesFromTMDB() {
                         profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null
                     })) || [];
 
+                    // Get crew (director and top crew members)
+                    const crew = details.data.credits?.crew?.slice(0, 5).map(c => ({
+                        name: c.name,
+                        job: c.job,
+                        profileUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null
+                    })) || [];
+
                     movies.push({
                         title: details.data.title,
                         description: details.data.overview || 'No description available.',
@@ -89,34 +96,32 @@ async function fetchMoviesFromTMDB() {
                             ? `https://image.tmdb.org/t/p/original${details.data.backdrop_path}`
                             : null,
                         trailerUrl: trailer ? `https://www.youtube.com/embed/${trailer.key}` : null,
+                        youtubeKey: trailer?.key || null,
                         duration: details.data.runtime || 120,
                         releaseDate: details.data.release_date ? new Date(details.data.release_date) : new Date(),
                         genres: details.data.genres?.map(g => g.name) || ['Drama'],
                         rating: details.data.vote_average ? parseFloat(details.data.vote_average.toFixed(1)) : 7.0,
                         cast: cast,
+                        crew: crew,
                         director: director?.name || 'Unknown',
                         originalLanguage: details.data.original_language?.toUpperCase() || 'EN',
                         status: 'now-showing'
                     });
 
-                    console.log(`✓ Fetched: ${details.data.title}`);
+                    console.log(`  ${movies.length}. ${details.data.title} (${details.data.release_date?.split('-')[0] || 'N/A'})`);
 
                     // Rate limiting to avoid TMDB API throttling
                     await new Promise(resolve => setTimeout(resolve, 250));
                 } catch (err) {
-                    console.error(`Error fetching movie ${movie.id}:`, err.message);
+                    console.error(`  ✗ Error fetching movie ${movie.id}:`, err.message);
                 }
-            }
-
-            // Break outer loop if we've reached max movies
-            if (movies.length >= maxMovies) {
-                break;
             }
         } catch (err) {
             console.error(`Error fetching page ${page}:`, err.message);
         }
     }
 
+    console.log(`\n✓ Total movies fetched: ${movies.length}`);
     return movies;
 }
 
