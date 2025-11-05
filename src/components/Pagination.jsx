@@ -9,9 +9,8 @@ const Pagination = memo(function Pagination({
                                                 showInfo = true,
                                                 maxVisiblePages = 5,
                                             }) {
-    if (!totalPages || totalPages <= 1) return null;
-
-    const getVisiblePages = useCallback(() => {
+    // Calculate visible pages with useMemo
+    const visiblePages = useMemo(() => {
         const pages = [];
         let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
         let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
@@ -32,11 +31,21 @@ const Pagination = memo(function Pagination({
         return pages;
     }, [currentPage, maxVisiblePages, totalPages]);
 
-    const visiblePages = useMemo(getVisiblePages, [getVisiblePages]);
+    const handlePageClick = useCallback((page) => {
+        if (page !== currentPage && page >= 1 && page <= totalPages) {
+            onPageChange(page);
+            // Scroll to movie grid section
+            const movieGrid = document.querySelector('[data-movie-grid]');
+            if (movieGrid) {
+                movieGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    }, [currentPage, totalPages, onPageChange]);
 
-    const handlePageClick = (page) => {
-        if (page !== currentPage && page >= 1 && page <= totalPages) onPageChange(page);
-    };
+    // Early return AFTER all hooks
+    if (!totalPages || totalPages <= 1) return null;
 
     const prevDisabled = currentPage === 1;
     const nextDisabled = currentPage === totalPages;
@@ -53,7 +62,7 @@ const Pagination = memo(function Pagination({
             <div className="flex items-center gap-1">
                 <button
                     type="button"
-                    onClick={() => !prevDisabled && onPageChange(currentPage - 1)}
+                    onClick={() => !prevDisabled && handlePageClick(currentPage - 1)}
                     disabled={prevDisabled}
                     className={`p-2 rounded border transition-colors ${
                         prevDisabled
@@ -92,7 +101,7 @@ const Pagination = memo(function Pagination({
 
                 <button
                     type="button"
-                    onClick={() => !nextDisabled && onPageChange(currentPage + 1)}
+                    onClick={() => !nextDisabled && handlePageClick(currentPage + 1)}
                     disabled={nextDisabled}
                     className={`p-2 rounded border transition-colors ${
                         nextDisabled
