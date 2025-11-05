@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { Link } from "react-router-dom";
 import { Star, Calendar, Play } from "lucide-react";
 import { getImageUrl } from "../utils/api";
 import { RATING_CONFIG } from "../utils/constants";
+import LazyImage from "./LazyImage";
 
-const MovieCard = ({ movie }) => {
+const MovieCard = memo(({ movie }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
@@ -39,18 +40,16 @@ const MovieCard = ({ movie }) => {
                 <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-surface-light border border-white/10 group-hover:border-white/30 transition-colors">
                     {!imageError ? (
                         <>
-                            <img
+                            <LazyImage
                                 src={posterUrl || fallbackUrl}
                                 alt={movie.title || "Movie poster"}
-                                loading="lazy"
-                                className={`w-full h-full object-cover transition-opacity duration-300 ${
-                                    imageLoaded ? "opacity-100" : "opacity-0"
-                                }`}
-                                onLoad={() => setImageLoaded(true)}
+                                className="w-full h-full object-cover"
+                                placeholder="/placeholder-movie-poster.jpg"
                                 onError={() => {
                                     setImageError(true);
                                     setImageLoaded(true);
                                 }}
+                                onLoad={() => setImageLoaded(true)}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         </>
@@ -118,6 +117,8 @@ const MovieCard = ({ movie }) => {
             </div>
         </Link>
     );
-};
+});
+
+MovieCard.displayName = 'MovieCard';
 
 export default MovieCard;

@@ -23,6 +23,7 @@ import {
     formatBackendMovie,
     checkBackendHealth,
 } from "../utils/backendApi";
+import { preloadMoviePosters } from "../utils/imageCache";
 import { useDebounce } from "../hooks/useDebounce";
 import { API_CONFIG } from "../utils/constants";
 import { useNavigate } from "react-router-dom";
@@ -151,6 +152,11 @@ const Home = () => {
                 setMovies(formattedMovies);
                 setFilteredMovies(formattedMovies);
 
+                // Preload next page images for faster navigation
+                if (formattedMovies.length > 0) {
+                    preloadMoviePosters(formattedMovies, 20);
+                }
+
                 // Only refresh hero on page 1 so it stays stable during pagination
                 if (currentPage === 1) {
                     setHeroMovies(formattedMovies.slice(0, 5));
@@ -204,19 +210,8 @@ const Home = () => {
 
     const handlePageChange = useCallback((page) => {
         setCurrentPage(page);
-        }, []);
-
-    useEffect(() => {
-        if (!loading) {
-            const el = document.querySelector('[data-movie-grid]');
-            el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, [currentPage, loading]);
-
-    useEffect(() => {
-        if ('scrollRestoration' in window.history) {
-            window.history.scrollRestoration = 'manual';
-        }
+        // Scroll to top instantly on pagination
+        window.scrollTo(0, 0);
     }, []);
 
 

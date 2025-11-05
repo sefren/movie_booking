@@ -14,9 +14,6 @@
         font-feature-settings: "rlig" 1, "calt" 1;
     }
 
-    html {
-        scroll-behavior: smooth;
-    }
 
     /* Custom Scrollbar */
     ::-webkit-scrollbar {

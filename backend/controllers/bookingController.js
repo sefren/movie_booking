@@ -58,7 +58,7 @@ export async function createBooking(req, res, next) {
         const lockedUntil = new Date();
         lockedUntil.setMinutes(lockedUntil.getMinutes() + 10);
 
-        // Create booking with pending status
+        // Create booking with pending status - 10 minute temporary hold
         const booking = await Booking.create({
             movieId: showtime.movieId._id,
             showtimeId: showtimeId,
@@ -68,9 +68,9 @@ export async function createBooking(req, res, next) {
             customerPhone,
             selectedSeats,
             totalAmount,
-            status: 'pending', // Pending until payment is confirmed
+            status: 'pending', // Pending - has 10 min to confirm payment
             expiresAt: lockedUntil,
-            transactionId: null // Will be set after payment
+            transactionId: null // Will be set after payment confirmation
         });
 
         // Update available seats
@@ -298,15 +298,17 @@ export async function confirmBooking(req, res, next) {
             });
         }
 
-        // Confirm booking
+        // Confirm booking - PERMANENT LOCK
         booking.status = 'confirmed';
+        booking.expiresAt = null; // Remove expiry - now permanently locked
         booking.transactionId = transactionId || `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`;
         await booking.save();
 
-        console.log('✅ Booking confirmed successfully:', {
+        console.log('✅ Booking confirmed successfully - PERMANENT LOCK:', {
             id: booking._id,
             status: booking.status,
-            transactionId: booking.transactionId
+            transactionId: booking.transactionId,
+            expiresAt: booking.expiresAt // Should be null now
         });
 
         const populatedBooking = await Booking.findById(booking._id)
@@ -332,9 +334,10 @@ export async function confirmBooking(req, res, next) {
             selectedSeats: populatedBooking.selectedSeats,
             seats: populatedBooking.selectedSeats,
             totalAmount: populatedBooking.totalAmount,
-            total: populatedBooking.totalAmount,
+            total: populatedBooking.totalAmount, // Alias
             status: populatedBooking.status,
             transactionId: populatedBooking.transactionId,
+            lockedUntil: populatedBooking.expiresAt, // Shows when temporary hold expires
             bookingDate: populatedBooking.bookingDate,
             date: populatedBooking.showtimeId.date,
             movie: {
