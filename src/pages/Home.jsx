@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
-import MovieCard from "../components/MovieCard";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import MovieGrid from "../components/MovieGrid";
 import SearchBar from "../components/SearchBar";
 import FilterBar from "../components/FilterBar";
 import {
     Loader2,
-    Film,
-    AlertCircle,
     ChevronLeft,
     ChevronRight,
     Play,
@@ -28,7 +26,6 @@ import {
 import { useDebounce } from "../hooks/useDebounce";
 import { API_CONFIG } from "../utils/constants";
 import { useNavigate } from "react-router-dom";
-import Pagination from "../components/Pagination.jsx";
 
 const Home = () => {
     // State
@@ -39,10 +36,15 @@ const Home = () => {
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [activeGenre, setActiveGenre] = useState(null);
-    const [upcomingPage, setUpcomingPage] = useState(1);
-    const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalMovies, setTotalMovies] = useState(0);
     const [useBackend, setUseBackend] = useState(true);
     const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
+    const [pageLoading, setPageLoading] = useState(false);
+    const [heroMovies, setHeroMovies] = useState([]);
+    const requestSeq = useRef(0);
+
     const navigate = useNavigate();
 
     // Debounce search query
@@ -77,66 +79,99 @@ const Home = () => {
 
     // Fetch movies based on active tab
     useEffect(() => {
-        const loadMovies = async () => {
-            setLoading(true);
-            setError(null);
+        const seq = ++requestSeq.current;
 
+        // If we already have something on screen, treat this as a page fetch.
+        const isPageFetch = movies.length > 0;
+        setLoading(!isPageFetch);
+        setPageLoading(isPageFetch);
+        setError(null);
+
+        const loadMovies = async () => {
             try {
                 let result;
                 let formattedMovies;
 
                 if (useBackend) {
-                    const statusMap = {
-                        'now_playing': 'now-showing',
-                        'upcoming': 'coming-soon'
-                    };
-
+                    const statusMap = { now_playing: "now-showing", upcoming: "coming-soon" };
                     const params = {
                         status: statusMap[activeTab] || activeTab,
                         search: debouncedSearchQuery.trim() || undefined,
-                        page: activeTab === "upcoming" ? upcomingPage : 1,
+                        page: currentPage,
                         limit: 20,
                     };
 
-                    const backendMovies = await fetchMoviesFromBackend(params);
+                    const backendResponse = await fetchMoviesFromBackend(params);
 
-                    if (Array.isArray(backendMovies)) {
-                        formattedMovies = backendMovies.map(formatBackendMovie);
+                    if (backendResponse && typeof backendResponse === "object") {
+                        if (Array.isArray(backendResponse.movies)) {
+                            formattedMovies = backendResponse.movies.map(formatBackendMovie);
+                            if (requestSeq.current !== seq) return; // stale
+                            setTotalPages(backendResponse.totalPages || 1);
+                            setTotalMovies(backendResponse.total || formattedMovies.length);
+                        } else if (Array.isArray(backendResponse)) {
+                            formattedMovies = backendResponse.map(formatBackendMovie);
+                            if (requestSeq.current !== seq) return;
+                            setTotalPages(1);
+                            setTotalMovies(formattedMovies.length);
+                        } else {
+                            formattedMovies = [];
+                            if (requestSeq.current !== seq) return;
+                            setTotalPages(1);
+                            setTotalMovies(0);
+                        }
+                    } else if (Array.isArray(backendResponse)) {
+                        formattedMovies = backendResponse.map(formatBackendMovie);
+                        if (requestSeq.current !== seq) return;
+                        setTotalPages(1);
+                        setTotalMovies(formattedMovies.length);
                     } else {
                         formattedMovies = [];
+                        if (requestSeq.current !== seq) return;
+                        setTotalPages(1);
+                        setTotalMovies(0);
                     }
-
-                    setHasMoreUpcoming(false);
                 } else {
                     if (debouncedSearchQuery.trim()) {
-                        result = await searchMovies(debouncedSearchQuery);
+                        result = await searchMovies(debouncedSearchQuery, currentPage);
                     } else if (activeTab === "now_playing") {
-                        result = await fetchNowPlayingMovies();
+                        result = await fetchNowPlayingMovies(currentPage);
                     } else {
-                        result = await fetchUpcomingMovies(upcomingPage);
-                        setHasMoreUpcoming(result.total_pages > upcomingPage);
+                        result = await fetchUpcomingMovies(currentPage);
                     }
 
                     formattedMovies = result.results.map(formatMovieData);
+                    if (requestSeq.current !== seq) return; // stale
+                    setTotalPages(result.total_pages || 1);
+                    setTotalMovies(result.total_results || formattedMovies.length);
                 }
 
+                // Commit results if still the latest request
+                if (requestSeq.current !== seq) return;
                 setMovies(formattedMovies);
                 setFilteredMovies(formattedMovies);
+
+                // Only refresh hero on page 1 so it stays stable during pagination
+                if (currentPage === 1) {
+                    setHeroMovies(formattedMovies.slice(0, 5));
+                }
             } catch (err) {
+                if (requestSeq.current !== seq) return;
                 console.error("Failed to load movies:", err);
                 setError(err.message || "Failed to load movies. Please try again.");
-
-                if (useBackend) {
-                    console.log("Backend failed, switching to fallback...");
-                    setUseBackend(false);
-                }
+                if (useBackend) setUseBackend(false);
             } finally {
-                setLoading(false);
+                if (requestSeq.current === seq) {
+                    setLoading(false);
+                    setPageLoading(false);
+                }
             }
         };
 
         loadMovies();
-    }, [activeTab, debouncedSearchQuery, upcomingPage, useBackend]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, debouncedSearchQuery, currentPage, useBackend]);
+
 
     // Apply genre filter
     useEffect(() => {
@@ -150,27 +185,40 @@ const Home = () => {
 
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
-        setUpcomingPage(1);
+        setCurrentPage(1); // Reset to page 1 on search
     }, []);
 
     const handleTabChange = useCallback((tab) => {
         setActiveTab(tab);
         setSearchQuery("");
         setActiveGenre(null);
-        setUpcomingPage(1);
+        setCurrentPage(1); // Reset to page 1 on tab change
         setCurrentHeroSlide(0);
         setMovies([]); // Clear movies when switching tabs to prevent stale index
     }, []);
 
     const handleGenreChange = useCallback((genreId) => {
         setActiveGenre(genreId);
+        setCurrentPage(1); // Reset to page 1 on genre change
     }, []);
 
-    const handleLoadMore = () => {
-        if (hasMoreUpcoming && !loading) {
-            setUpcomingPage((prev) => prev + 1);
+    const handlePageChange = useCallback((page) => {
+        setCurrentPage(page);
+        }, []);
+
+    useEffect(() => {
+        if (!loading) {
+            const el = document.querySelector('[data-movie-grid]');
+            el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, [currentPage, loading]);
+
+    useEffect(() => {
+        if ('scrollRestoration' in window.history) {
+            window.history.scrollRestoration = 'manual';
         }
-    };
+    }, []);
+
 
     const clearFilters = useCallback(() => {
         setSearchQuery("");
@@ -203,8 +251,8 @@ const Home = () => {
         navigate(`/booking/${movieId}`);
     };
 
-    // Hero Section Component
-    const HeroSection = () => {
+    // Hero Section Component - Memoized to prevent re-renders
+    const HeroSection = memo(({ movies, currentSlide, onNext, onPrev, onGoTo, onBookNow, activeTab, loading }) => {
         const heroMovies = movies.slice(0, 5);
 
         if (loading || heroMovies.length === 0) {
@@ -220,7 +268,7 @@ const Home = () => {
             );
         }
 
-        const currentMovie = heroMovies[currentHeroSlide];
+        const currentMovie = heroMovies[currentSlide];
 
         // Safety check - if currentMovie is undefined, don't render
         if (!currentMovie) {
@@ -378,76 +426,21 @@ const Home = () => {
                 )}
             </div>
         );
-    };
-
-    // Loading skeleton
-    const LoadingSkeleton = () => (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {Array.from({ length: 12 }).map((_, index) => (
-                <div key={index} className="overflow-hidden">
-                    <div className="aspect-[2/3] bg-white/5 rounded-lg animate-pulse"></div>
-                    <div className="pt-2.5 pb-3 space-y-2">
-                        <div className="h-4 bg-white/5 rounded animate-pulse"></div>
-                        <div className="h-3 bg-white/5 rounded w-3/4 animate-pulse"></div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-
-    // Error state
-    const ErrorState = () => (
-        <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-danger/10 mb-4">
-                <AlertCircle className="w-8 h-8 text-danger" />
-            </div>
-            <h3 className="text-xl font-semibold text-text mb-2">
-                Something went wrong
-            </h3>
-            <p className="text-text-muted mb-6">{error}</p>
-            <button
-                onClick={() => {
-                    setError(null);
-                    window.location.reload();
-                }}
-                className="btn-primary"
-            >
-                Try Again
-            </button>
-        </div>
-    );
-
-    // Empty state
-    const EmptyState = () => (
-        <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-light mb-4">
-                <Film className="w-8 h-8 text-text-dim" />
-            </div>
-            <h3 className="text-xl font-semibold text-text mb-2">
-                No movies found
-            </h3>
-            <p className="text-text-muted mb-6">
-                {debouncedSearchQuery
-                    ? `No results for "${debouncedSearchQuery}"`
-                    : activeGenre
-                        ? "No movies in this genre"
-                        : "No movies available at the moment"}
-            </p>
-            {(debouncedSearchQuery || activeGenre) && (
-                <button
-                    onClick={clearFilters}
-                    className="btn-secondary"
-                >
-                    Clear Filters
-                </button>
-            )}
-        </div>
-    );
+    });
 
     return (
         <div className="min-h-screen bg-base-900">
             {/* Hero Carousel Section */}
-            <HeroSection />
+            <HeroSection
+                movies={movies}
+                currentSlide={currentHeroSlide}
+                onNext={nextSlide}
+                onPrev={prevSlide}
+                onGoTo={goToSlide}
+                onBookNow={handleBookNow}
+                activeTab={activeTab}
+                loading={loading}
+            />
 
             {/* Main Content - Better Container */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
@@ -504,87 +497,20 @@ const Home = () => {
                     </div>
                 )}
 
-                {/* Results Section - Clean Separator */}
-                {!loading && filteredMovies.length > 0 && (
-                    <div className="mb-8 pb-6 border-b border-white/10">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-                                    {debouncedSearchQuery
-                                        ? "Search Results"
-                                        : activeGenre
-                                            ? "Filtered Movies"
-                                            : activeTab === "now_playing"
-                                                ? "Now Playing"
-                                                : "Coming Soon"}
-                                </h2>
-                                <p className="text-sm text-white/60">
-                                    {filteredMovies.length} {filteredMovies.length === 1 ? "movie" : "movies"} found
-                                    {debouncedSearchQuery && (
-                                        <span className="ml-1">
-                                            for <span className="text-cinema-red font-medium">"{debouncedSearchQuery}"</span>
-                                        </span>
-                                    )}
-                                </p>
-                            </div>
-
-                            {(debouncedSearchQuery || activeGenre) && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="btn-secondary text-sm whitespace-nowrap"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Content Area */}
-                {loading && movies.length === 0 ? (
-                    <LoadingSkeleton />
-                ) : error ? (
-                    <ErrorState />
-                ) : filteredMovies.length === 0 ? (
-                    <EmptyState />
-                ) : (
-                    <>
-                        {/* Movie Grid - Optimized Spacing */}
-                        <div className="mb-10">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                                {filteredMovies.map((movie) => (
-                                    <MovieCard key={movie.id} movie={movie} />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Load More Section - Centered & Clean */}
-                        {activeTab === "upcoming" &&
-                            hasMoreUpcoming &&
-                            !debouncedSearchQuery &&
-                            !activeGenre && (
-                                <div className="text-center py-8 border-t border-white/10">
-                                    <button
-                                        onClick={handleLoadMore}
-                                        disabled={loading}
-                                        className="btn-primary px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <Loader2 className="inline w-4 h-4 mr-2 animate-spin" />
-                                                Loading More...
-                                            </>
-                                        ) : (
-                                            "Load More Movies"
-                                        )}
-                                    </button>
-                                    <p className="text-xs text-white/40 mt-3">
-                                        Showing {filteredMovies.length} movies
-                                    </p>
-                                </div>
-                            )}
-                    </>
-                )}
+                {/* Content Area - Optimized with MovieGrid Component */}
+                <MovieGrid
+                    movies={filteredMovies}
+                    loading={loading && movies.length === 0}
+                    pageLoading={loading && movies.length > 0}
+                    error={error}
+                    searchQuery={debouncedSearchQuery}
+                    activeGenre={activeGenre}
+                    activeTab={activeTab}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    onClearFilters={clearFilters}
+                />
             </div>
         </div>
     );

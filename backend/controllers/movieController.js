@@ -88,13 +88,20 @@ export const getMovieShowtimes = async (req, res, next) => {
 
             query.date = { $gte: startDate, $lte: endDate };
         } else {
-            // Default: show next 7 days
-            query.date = { $gte: new Date() };
+            // Default: show next 60 days (2 months)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const maxDate = new Date(today);
+            maxDate.setDate(maxDate.getDate() + 60);
+
+            query.date = { $gte: today, $lte: maxDate };
         }
 
         const showtimes = await Showtime.find(query)
             .populate('screenId', 'name screenType priceMultiplier totalSeats')
-            .sort({ date: 1, time: 1 });
+            .sort({ date: 1, time: 1 })
+            .lean(); // Use lean() for better performance - returns plain JS objects
 
         // Group showtimes by date for better organization
         const groupedByDate = {};

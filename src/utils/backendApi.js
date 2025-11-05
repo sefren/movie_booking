@@ -63,9 +63,29 @@ export const fetchMoviesFromBackend = async (params = {}) => {
 
     const response = await apiRequest(endpoint);
 
+    console.log('🔍 Backend Response:', response);
+
     // Backend returns { success: true, data: { movies: [...], pagination: {...} } }
-    // Return just the movies array
-    return response.data?.movies || [];
+    // Return the full data object with movies and pagination
+    if (response.data) {
+      const result = {
+        movies: response.data.movies || [],
+        totalPages: response.data.pagination?.totalPages || 1,
+        total: response.data.pagination?.totalMovies || 0,
+        currentPage: response.data.pagination?.currentPage || 1,
+      };
+      console.log('✅ Extracted Pagination Data:', {
+        totalPages: result.totalPages,
+        total: result.total,
+        currentPage: result.currentPage,
+        moviesCount: result.movies.length
+      });
+      return result;
+    }
+
+    // Fallback to just movies if structure is different
+    console.warn('⚠️ No data object in response, using fallback');
+    return { movies: [], totalPages: 1, total: 0, currentPage: 1 };
   } catch (error) {
     console.error("Failed to fetch movies from backend:", error);
     throw error;
@@ -127,33 +147,13 @@ export const fetchAvailableDates = async (movieId) => {
       return [];
     }
 
-    // Extract dates from showtimes array (these are actual showtimes that exist)
+    // Extract unique dates directly from showtimes array (no need to verify again!)
     const uniqueDates = [...new Set(
       data.showtimes.map(st => new Date(st.date).toISOString().split('T')[0])
     )].sort();
 
-    console.log('📅 Dates with confirmed showtimes:', uniqueDates);
-
-    // Verify each date by actually checking if it has showtimes
-    const verifiedDates = [];
-    for (const dateStr of uniqueDates) {
-      try {
-        const dateShowtimes = await fetchMovieShowtimes(movieId, dateStr);
-        const count = dateShowtimes.showtimes?.length || 0;
-
-        if (count > 0) {
-          verifiedDates.push(dateStr);
-          console.log(`✅ ${dateStr}: ${count} showtimes`);
-        } else {
-          console.log(`❌ ${dateStr}: 0 showtimes (filtered out)`);
-        }
-      } catch (error) {
-        console.error(`Error verifying ${dateStr}:`, error);
-      }
-    }
-
-    console.log('📅 Final verified dates:', verifiedDates);
-    return verifiedDates;
+    console.log(`✅ Found ${uniqueDates.length} dates with showtimes`);
+    return uniqueDates;
   } catch (error) {
     console.error("Failed to fetch available dates:", error);
     return [];

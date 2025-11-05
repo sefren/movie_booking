@@ -97,6 +97,9 @@ const MovieDetails = () => {
         console.log('🎬 Backend Movie Data:', backendMovie);
         console.log('🎥 Trailer URL:', backendMovie.trailerUrl);
         console.log('🔑 YouTube Key:', backendMovie.youtubeKey);
+        console.log('👥 Cast Data:', backendMovie.cast);
+        console.log('🎬 Crew Data:', backendMovie.crew);
+        console.log('🎯 Director:', backendMovie.director);
 
         // Set trailer from backend
         if (backendMovie.youtubeKey) {
@@ -106,18 +109,37 @@ const MovieDetails = () => {
           console.warn('⚠️ No YouTube key found in backend movie');
         }
 
-        // Set cast from backend
-        if (backendMovie.cast && backendMovie.cast.length > 0) {
-          setCast(backendMovie.cast);
-          console.log('✅ Cast loaded:', backendMovie.cast.length, 'members');
+        // Set cast from backend - ALWAYS set even if empty
+        if (backendMovie.cast) {
+          if (Array.isArray(backendMovie.cast)) {
+            setCast(backendMovie.cast);
+            console.log('✅ Cast loaded:', backendMovie.cast.length, 'members');
+          } else {
+            console.warn('⚠️ Cast is not an array:', typeof backendMovie.cast);
+            setCast([]);
+          }
+        } else {
+          console.warn('⚠️ No cast data in backend movie');
+          setCast([]);
         }
 
-        // Set director from backend crew
-        if (backendMovie.crew && backendMovie.crew.length > 0) {
+        // Set director from backend crew - ALWAYS attempt to set
+        if (backendMovie.crew && Array.isArray(backendMovie.crew)) {
           const directorData = backendMovie.crew.find(person => person.job === 'Director');
           if (directorData) {
             setDirector(directorData);
+            console.log('✅ Director set:', directorData.name);
+          } else {
+            console.warn('⚠️ No director found in crew');
+            setDirector(null);
           }
+        } else if (backendMovie.director) {
+          // Fallback: if director is a string in the movie object
+          setDirector({ name: backendMovie.director });
+          console.log('✅ Director set from string:', backendMovie.director);
+        } else {
+          console.warn('⚠️ No crew or director data');
+          setDirector(null);
         }
 
         // Fetch similar movies grouped by genre from backend
@@ -167,6 +189,8 @@ const MovieDetails = () => {
 
           if (creditsData.cast) {
             setCast(creditsData.cast.slice(0, 12));
+          } else {
+            setCast([]);
           }
 
           if (creditsData.crew) {
@@ -175,7 +199,11 @@ const MovieDetails = () => {
             );
             if (directorData) {
               setDirector(directorData);
+            } else {
+              setDirector(null);
             }
+          } else {
+            setDirector(null);
           }
 
           // Fetch similar movies

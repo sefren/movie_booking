@@ -57,6 +57,11 @@ const movieSchema = new mongoose.Schema(
             character: String,
             profileUrl: String,
         }],
+        crew: [{
+            name: String,
+            job: String,
+            profileUrl: String,
+        }],
         director: {
             type: String,
         },

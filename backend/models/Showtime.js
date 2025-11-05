@@ -44,5 +44,6 @@ const showtimeSchema = new mongoose.Schema(
 // Compound index for efficient queries
 showtimeSchema.index({ movieId: 1, date: 1, time: 1 });
 showtimeSchema.index({ date: 1, screenId: 1 });
+showtimeSchema.index({ movieId: 1, date: 1 }); // Optimized for date range queries by movie
 
 export default mongoose.model('Showtime', showtimeSchema);
