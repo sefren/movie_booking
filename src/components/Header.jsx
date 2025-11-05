@@ -1,399 +1,315 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, User, Menu, X, Film, LogOut } from "lucide-react";
 import { useDebounce } from "../hooks/useDebounce";
 import { getImageUrl } from "../utils/api";
 import {
-  fetchMoviesFromBackend,
-  formatBackendMovie,
-  checkBackendHealth,
+    fetchMoviesFromBackend,
+    formatBackendMovie,
+    checkBackendHealth,
 } from "../utils/backendApi";
 import { searchMovies, formatMovieData } from "../utils/api";
 import { API_CONFIG } from "../utils/constants";
 import { useAuth } from "../contexts/AuthContext";
 import AuthModal from "./AuthModal";
+import { Search, User, Menu, LogOut, X, Film } from "lucide-react";
 
 const Header = ({ showSearch = true }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [useBackend, setUseBackend] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const searchRef = useRef(null);
-  const navigate = useNavigate();
-  const { user, logout, isAuthenticated } = useAuth();
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [results, setResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [useBackend, setUseBackend] = useState(true);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const debouncedSearchQuery = useDebounce(
-    searchQuery,
-    API_CONFIG.debounceDelay,
-  );
+    const searchRef = useRef(null);
+    const navigate = useNavigate();
+    const { user, logout, isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    const checkBackend = async () => {
-      const isAvailable = await checkBackendHealth();
-      setUseBackend(isAvailable);
+    const debounced = useDebounce(searchQuery, API_CONFIG.debounceDelay);
+
+    // Check backend availability
+    useEffect(() => {
+        (async () => {
+            const ok = await checkBackendHealth();
+            setUseBackend(ok);
+        })();
+    }, []);
+
+    // Click outside to close dropdown
+    useEffect(() => {
+        const onDocClick = (e) => {
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", onDocClick);
+        return () => document.removeEventListener("mousedown", onDocClick);
+    }, []);
+
+    // ESC closes dropdown and mobile menu
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key === "Escape") {
+                setShowDropdown(false);
+                setIsMobileOpen(false);
+            }
+        };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, []);
+
+    // Search
+    useEffect(() => {
+        const run = async () => {
+            const q = debounced.trim();
+            if (!q) {
+                setResults([]);
+                setIsSearching(false);
+                return;
+            }
+            setIsSearching(true);
+            try {
+                if (useBackend) {
+                    const backendMovies = await fetchMoviesFromBackend({ search: q, limit: 6 });
+                    setResults(Array.isArray(backendMovies) ? backendMovies.map(formatBackendMovie) : []);
+                } else {
+                    const resp = await searchMovies(q);
+                    setResults((resp.results || []).slice(0, 6).map(formatMovieData));
+                }
+            } catch {
+                setResults([]);
+            } finally {
+                setIsSearching(false);
+            }
+        };
+        run();
+    }, [debounced, useBackend]);
+
+    const handleMovieClick = useCallback(
+        (id) => {
+            setShowDropdown(false);
+            setSearchQuery("");
+            setResults([]);
+            setIsMobileOpen(false);
+            navigate(`/movie/${id}`);
+        },
+        [navigate]
+    );
+
+    const handleLogout = () => {
+        logout();
+        setIsMobileOpen(false);
+        navigate("/");
     };
-    checkBackend();
-  }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+    const clearSearch = () => {
+        setSearchQuery("");
+        setResults([]);
         setShowDropdown(false);
-      }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedSearchQuery.trim()) {
-        setSearchResults([]);
-        setShowDropdown(false);
-        return;
-      }
-
-      setIsSearching(true);
-      setShowDropdown(true);
-
-      try {
-        let results = [];
-
-        if (useBackend) {
-          // Header search is GLOBAL - searches all movies (both now_playing AND upcoming)
-          const params = {
-            search: debouncedSearchQuery.trim(),
-            limit: 5,
-            // No 'status' parameter = search across all movies
-          };
-          const backendMovies = await fetchMoviesFromBackend(params);
-          results = Array.isArray(backendMovies)
-            ? backendMovies.map(formatBackendMovie)
-            : [];
-        } else {
-          const response = await searchMovies(debouncedSearchQuery);
-          results = response.results.slice(0, 5).map(formatMovieData);
-        }
-
-        setSearchResults(results);
-      } catch (error) {
-        console.error("Search failed:", error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    performSearch();
-  }, [debouncedSearchQuery, useBackend]);
-
-  const handleSearchChange = (value) => {
-    setSearchQuery(value);
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery("");
-    setSearchResults([]);
-    setShowDropdown(false);
-  };
-
-  const handleMovieClick = (movieId) => {
-    setShowDropdown(false);
-    setSearchQuery("");
-    setSearchResults([]);
-    navigate(`/movie/${movieId}`);
-  };
-
-  const handleAuthClick = () => {
-    if (isAuthenticated()) {
-      navigate("/profile");
-    } else {
-      setShowAuthModal(true);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  return (
-    <header className="bg-white border-b border-primary-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex-1">
-            <Link to="/" className="flex items-center">
-              <div className="text-xl font-semibold text-primary-900 tracking-tight">
-                Cinema
-              </div>
-            </Link>
-          </div>
-
-          {/* Search Bar - Desktop */}
-          {showSearch && (
-            <div
-              className="hidden md:block flex-1 max-w-md mx-8"
-              ref={searchRef}
-            >
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-primary-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search movies..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  onFocus={() => searchQuery && setShowDropdown(true)}
-                  className="block w-full pl-10 pr-10 py-2 border border-primary-200 bg-white text-primary-900 placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-transparent text-sm"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={handleClearSearch}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-primary-600"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-
-                {/* Search Results Dropdown */}
-                {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-primary-200 shadow-lg max-h-96 overflow-y-auto z-50">
-                    {isSearching ? (
-                      <div className="p-4 text-center text-primary-600">
-                        <Search className="h-5 w-5 animate-spin mx-auto mb-2" />
-                        <p className="text-sm">Searching...</p>
-                      </div>
-                    ) : searchResults.length > 0 ? (
-                      <>
-                        {searchResults.map((movie) => (
-                          <button
-                            key={movie.id}
-                            onClick={() => handleMovieClick(movie.id)}
-                            className="w-full flex items-center space-x-3 p-3 hover:bg-primary-50 transition-colors text-left border-b border-primary-100 last:border-0"
-                          >
-                            <div className="flex-shrink-0 w-12 h-16 bg-primary-100">
-                              {movie.posterPath ? (
-                                <img
-                                  src={getImageUrl(
-                                    movie.posterPath,
-                                    "poster",
-                                    "small",
-                                  )}
-                                  alt={movie.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Film className="h-6 w-6 text-primary-400" />
+    return (
+        <>
+            <header className="sticky top-0 z-50 backdrop-blur-xl bg-base-900/95 border-b border-white/10">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6">
+                    <div className="h-16 flex items-center justify-between gap-4 sm:gap-6">
+                        {/* Polished Logo */}
+                        <Link to="/" className="flex items-center gap-2.5 group flex-shrink-0" onClick={() => setIsMobileOpen(false)}>
+                            <div className="relative">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cinema-red to-cinema-red-dark flex items-center justify-center shadow-lg shadow-cinema-red/20 transition-transform group-hover:scale-105">
+                                    <span className="text-sm font-bold text-white">S9</span>
                                 </div>
-                              )}
+                                <div className="absolute -inset-1 bg-cinema-red/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-primary-900 truncate">
-                                {movie.title}
-                              </h4>
-                              <p className="text-xs text-primary-600 truncate">
-                                {movie.releaseDate
-                                  ? new Date(movie.releaseDate).getFullYear()
-                                  : "N/A"}
-                                {movie.genres &&
-                                  movie.genres.length > 0 &&
-                                  ` • ${movie.genres[0]}`}
-                              </p>
-                              {movie.rating && (
-                                <p className="text-xs text-yellow-600">
-                                  ★ {movie.rating.toFixed(1)}
-                                </p>
-                              )}
+                            <div>
+                                <span className="text-base font-bold text-white tracking-tight block">Studio 9</span>
+                                <span className="text-[10px] text-white/40 uppercase tracking-wider -mt-0.5 block">Cinema</span>
                             </div>
-                          </button>
-                        ))}
-                      </>
-                    ) : (
-                      <div className="p-4 text-center text-primary-600">
-                        <Film className="h-8 w-8 mx-auto mb-2 text-primary-400" />
-                        <p className="text-sm">No movies found</p>
-                      </div>
+                        </Link>
+
+                        {/* Polished Search (desktop) */}
+                        {showSearch && (
+                            <div className="hidden md:block flex-1 max-w-lg">
+                                <div ref={searchRef} className="relative">
+                                    <div className="flex items-center bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 transition-all focus-within:bg-white/10 focus-within:border-white/20 focus-within:shadow-lg focus-within:shadow-white/5">
+                                        <Search className="h-4 w-4 text-white/40 flex-shrink-0" />
+                                        <input
+                                            value={searchQuery}
+                                            onChange={(e) => {
+                                                setSearchQuery(e.target.value);
+                                                if (e.target.value) setShowDropdown(true);
+                                            }}
+                                            onFocus={() => searchQuery && setShowDropdown(true)}
+                                            placeholder="Search movies..."
+                                            className="w-full bg-transparent text-sm text-white placeholder-white/30 outline-none ml-2.5"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                onClick={clearSearch}
+                                                className="text-white/40 hover:text-white/80 flex-shrink-0 p-1 rounded hover:bg-white/10 transition-colors"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Polished Search Results Dropdown */}
+                                    {showDropdown && searchQuery && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl max-h-96 overflow-y-auto">
+                                            {isSearching ? (
+                                                <div className="p-6 text-center">
+                                                    <Search className="h-5 w-5 animate-pulse text-white/40 mx-auto mb-2" />
+                                                    <span className="text-sm text-white/60">Searching...</span>
+                                                </div>
+                                            ) : results.length > 0 ? (
+                                                <div className="py-2">
+                                                    {results.map((movie) => (
+                                                        <button
+                                                            key={movie.id}
+                                                            onClick={() => handleMovieClick(movie.id)}
+                                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left group"
+                                                        >
+                                                            {movie.posterPath || movie.poster_path ? (
+                                                                <img
+                                                                    src={getImageUrl(movie.posterPath || movie.poster_path, "poster", "small")}
+                                                                    alt={movie.title}
+                                                                    className="w-10 h-14 object-cover rounded border border-white/10 shadow-lg"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-10 h-14 bg-white/5 rounded border border-white/10 flex items-center justify-center">
+                                                                    <Film className="w-4 h-4 text-white/30" />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium text-white truncate group-hover:text-cinema-red transition-colors">
+                                                                    {movie.title}
+                                                                </p>
+                                                                <p className="text-xs text-white/50">
+                                                                    {movie.releaseDate || movie.release_date ? new Date(movie.releaseDate || movie.release_date).getFullYear() : "N/A"}
+                                                                </p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-6 text-center">
+                                                    <Film className="mx-auto mb-2 h-10 w-10 text-white/20" />
+                                                    <p className="text-sm text-white/50">No results for "{searchQuery}"</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Polished Desktop Navigation */}
+                        <div className="hidden md:flex items-center gap-2">
+                            {isAuthenticated() ? (
+                                <>
+                                    <Link
+                                        to="/profile"
+                                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-white/90 hover:text-white text-sm font-medium"
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-cinema-red flex items-center justify-center text-xs font-bold">
+                                            {user?.name?.charAt(0).toUpperCase() || "U"}
+                                        </div>
+                                        <span className="max-w-[10ch] truncate">{user?.name || "Profile"}</span>
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="p-2 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-all"
+                                        title="Logout"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                    </button>
+                                </>
+                            ) : (
+                                <button
+                                    onClick={() => setShowAuthModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-base-900 hover:bg-white/90 transition-all font-medium text-sm shadow-lg shadow-white/10"
+                                >
+                                    <User className="w-4 h-4" />
+                                    <span>Sign In</span>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setIsMobileOpen(!isMobileOpen)}
+                            className="md:hidden p-2 rounded-lg hover:bg-white/5 text-white transition-all"
+                            aria-label="Toggle menu"
+                        >
+                            {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                        </button>
+                    </div>
+
+                    {/* Polished Mobile Menu */}
+                    {isMobileOpen && (
+                        <div className="md:hidden py-4 border-t border-white/10">
+                            {showSearch && (
+                                <div className="mb-4">
+                                    <div className="flex items-center bg-white/5 border border-white/10 rounded-lg px-3 py-2.5">
+                                        <Search className="h-4 w-4 text-white/40 flex-shrink-0" />
+                                        <input
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Search movies..."
+                                            className="w-full bg-transparent text-sm text-white placeholder-white/30 outline-none ml-2.5"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-1">
+                                {isAuthenticated() ? (
+                                    <>
+                                        <Link
+                                            to="/profile"
+                                            onClick={() => setIsMobileOpen(false)}
+                                            className="flex items-center gap-3 px-3 py-2.5 text-sm text-white/90 hover:bg-white/5 rounded-lg transition-all font-medium"
+                                        >
+                                            <div className="w-6 h-6 rounded-full bg-cinema-red flex items-center justify-center text-xs font-bold">
+                                                {user?.name?.charAt(0).toUpperCase() || "U"}
+                                            </div>
+                                            <span>{user?.name || "Profile"}</span>
+                                        </Link>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-white/90 hover:bg-white/5 rounded-lg transition-all font-medium text-left"
+                                        >
+                                            <LogOut className="w-4 h-4 text-white/60" />
+                                            <span>Logout</span>
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            setShowAuthModal(true);
+                                            setIsMobileOpen(false);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-base-900 hover:bg-white/90 rounded-lg transition-all font-medium text-sm shadow-lg"
+                                    >
+                                        <User className="w-4 h-4" />
+                                        <span>Sign In</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Right Side */}
-          <div className="flex items-center space-x-4">
-            {/* User Profile - Desktop */}
-            {isAuthenticated() ? (
-              <div className="hidden md:flex items-center space-x-4">
-                <button
-                  onClick={handleAuthClick}
-                  className="flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
-                >
-                  <User className="h-5 w-5" />
-                  <span className="text-sm font-medium">{user?.name}</span>
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span className="text-sm font-medium">Logout</span>
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="hidden md:flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
-              >
-                <User className="h-5 w-5" />
-                <span className="text-sm font-medium">Login</span>
-              </button>
-            )}
-
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-primary-100 py-4 animate-fade-in">
-            {/* Mobile Search */}
-            {showSearch && (
-              <div className="px-4 pb-4">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-primary-400" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search movies..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2 border border-primary-200 bg-white text-primary-900 placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:border-transparent text-sm"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={handleClearSearch}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary-400 hover:text-primary-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
                 </div>
+            </header>
 
-                {/* Mobile Search Results */}
-                {searchQuery && searchResults.length > 0 && (
-                  <div className="mt-2 bg-white border border-primary-200 max-h-64 overflow-y-auto">
-                    {searchResults.map((movie) => (
-                      <button
-                        key={movie.id}
-                        onClick={() => {
-                          handleMovieClick(movie.id);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center space-x-3 p-3 hover:bg-primary-50 transition-colors text-left border-b border-primary-100 last:border-0"
-                      >
-                        <div className="flex-shrink-0 w-10 h-14 bg-primary-100">
-                          {movie.posterPath ? (
-                            <img
-                              src={getImageUrl(
-                                movie.posterPath,
-                                "poster",
-                                "small",
-                              )}
-                              alt={movie.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Film className="h-5 w-5 text-primary-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-primary-900 truncate">
-                            {movie.title}
-                          </h4>
-                          <p className="text-xs text-primary-600">
-                            {movie.releaseDate
-                              ? new Date(movie.releaseDate).getFullYear()
-                              : "N/A"}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Mobile Profile */}
-            <nav className="space-y-1">
-              {isAuthenticated() ? (
-                <>
-                  <button
-                    onClick={() => {
-                      handleAuthClick();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-900 hover:bg-primary-50 transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>{user?.name}</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-900 hover:bg-primary-50 transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    setShowAuthModal(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-900 hover:bg-primary-50 transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Login</span>
-                </button>
-              )}
-            </nav>
-          </div>
-        )}
-      </div>
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        initialMode="login"
-      />
-    </header>
-  );
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                initialMode="login"
+            />
+        </>
+    );
 };
 
 export default Header;
+

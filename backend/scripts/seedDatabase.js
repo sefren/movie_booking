@@ -255,7 +255,7 @@ async function seedShowtimes(movies, screens) {
 
     console.log('Generating realistic showtimes for 2 months...');
     console.log(`Starting from: ${today.toISOString().split('T')[0]}`);
-
+    
     // Display available screen types
     const screenTypes = {};
     screens.forEach(screen => {
@@ -265,7 +265,7 @@ async function seedShowtimes(movies, screens) {
         }
         screenTypes[type].push(screen.name);
     });
-
+    
     console.log('\n📺 Available Screen Types:');
     Object.entries(screenTypes).forEach(([type, screenNames]) => {
         console.log(`  ${type}: ${screenNames.join(', ')} (${screenNames.length} screens)`);
@@ -294,42 +294,30 @@ async function seedShowtimes(movies, screens) {
         const premiumScreens = screens.filter(s => ['IMAX', 'Dolby', '3D'].includes(s.screenType));
         const allScreens = screens;
 
-        if (scheduleType < 0.3) {
+            return { movie, type: 'random', screens: getRandomSubset(screens, 1, 2), daysPerWeek: Math.floor(Math.random() * 2) + 2 };
             // 30% - Weekend only movies (limited release) - mostly standard screens
             const selectedScreens = standardScreens.length > 0
                 ? getRandomSubset(standardScreens, 1, Math.min(2, standardScreens.length))
                 : getRandomSubset(allScreens, 1, 2);
             return { movie, type: 'weekend-only', screens: selectedScreens };
-        } else if (scheduleType < 0.6) {
+
             // 30% - Random days (indie/art house) - mix of standard and 1 premium
             const selectedScreens = getRandomSubset(allScreens, 1, 2);
             return { movie, type: 'random', screens: selectedScreens, daysPerWeek: Math.floor(Math.random() * 2) + 2 };
-        } else {
+        const date = new Date(today.getTime());
             // 40% - Regular showing (blockbusters) - prefer premium screens
             const selectedScreens = premiumScreens.length > 0
                 ? getRandomSubset([...premiumScreens, ...getRandomSubset(standardScreens, 0, 1)], 2, 3)
                 : getRandomSubset(allScreens, 2, 3);
             return { movie, type: 'regular', screens: selectedScreens, daysPerWeek: Math.floor(Math.random() * 3) + 4 };
-        }
-    });
-
-    // Generate showtimes for next 60 days (2 months)
-    for (let dayOffset = 0; dayOffset < 60; dayOffset++) {
-        const date = new Date(today.getTime());
-        date.setDate(today.getDate() + dayOffset);
-        const isWeekendDay = isWeekend(date);
-
-        // Decide which movies show today
-        movieSchedules.forEach(schedule => {
+            // 30% - Random days (2-3 days per week)
+            return { movie, type: 'random', screens: getRandomSubset(screens, 1, 2), daysPerWeek: Math.floor(Math.random() * 2) + 2 };
             let showToday = false;
 
             if (schedule.type === 'weekend-only') {
                 // Only show on weekends
-                showToday = isWeekendDay;
-            } else if (schedule.type === 'random') {
-                // Show on random days based on daysPerWeek probability
-                const probability = schedule.daysPerWeek / 7;
-                showToday = Math.random() < probability;
+            // 40% - Regular showing (4-6 days per week, more screens)
+            return { movie, type: 'regular', screens: getRandomSubset(screens, 2, 3), daysPerWeek: Math.floor(Math.random() * 3) + 4 };
             } else {
                 // Regular showing - high probability, extra high on weekends
                 const probability = isWeekendDay ? 0.9 : (schedule.daysPerWeek / 7);
@@ -379,6 +367,18 @@ async function seedShowtimes(movies, screens) {
     console.log(`✓ ${movieSchedules.filter(s => s.type === 'random').length} random-schedule movies`);
     console.log(`✓ ${movieSchedules.filter(s => s.type === 'regular').length} regular-schedule movies`);
 
+    return createdShowtimes;
+}
+
+// Main seed function
+async function seedDatabase() {
+
+        console.log('=================================');
+        console.log('Starting Database Seeding Process');
+        console.log('=================================\n');
+
+        // Connect to MongoDB
+
     // Show screen type distribution
     console.log('\n📊 Screen Type Usage:');
     const screenUsage = {};
@@ -392,21 +392,9 @@ async function seedShowtimes(movies, screens) {
         console.log(`  ${type}: ${count} showtimes (${percentage}%)`);
     });
 
-    return createdShowtimes;
-}
-
-// Main seed function
-async function seedDatabase() {
-    try {
-        console.log('=================================');
-        console.log('Starting Database Seeding Process');
-        console.log('=================================\n');
-
-        // Connect to MongoDB
-        await mongoose.connect(process.env.MONGODB_URI);
         console.log('✓ Connected to MongoDB\n');
 
-        // Fetch movies from TMDB
+
         console.log('Step 1: Fetching movies from TMDB API...');
         const movieData = await fetchMoviesFromTMDB();
         console.log(`✓ Fetched ${movieData.length} movies from TMDB\n`);
@@ -415,20 +403,7 @@ async function seedDatabase() {
         console.log('Step 2: Clearing existing data...');
         await Movie.deleteMany({});
         await Screen.deleteMany({});
-        await Showtime.deleteMany({});
 
-        // Drop indexes to avoid conflicts (especially text indexes)
-        try {
-            await Movie.collection.dropIndexes();
-            console.log('✓ Dropped old indexes');
-        } catch (err) {
-            console.log('✓ No indexes to drop');
-        }
-
-        console.log('✓ Cleared existing data\n');
-
-        // Seed movies
-        console.log('Step 3: Seeding movies to database...');
 
         if (movieData.length === 0) {
             console.log('⚠ No movies fetched from TMDB. Cannot proceed with seeding.');

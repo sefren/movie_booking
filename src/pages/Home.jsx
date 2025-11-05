@@ -3,578 +3,591 @@ import MovieCard from "../components/MovieCard";
 import SearchBar from "../components/SearchBar";
 import FilterBar from "../components/FilterBar";
 import {
-  Loader2,
-  Film,
-  AlertCircle,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  Play,
-  Star,
-  Clock,
-  Calendar,
-  Info,
+    Loader2,
+    Film,
+    AlertCircle,
+    ChevronLeft,
+    ChevronRight,
+    Play,
+    Star,
+    Calendar,
+    Info,
 } from "lucide-react";
 import {
-  fetchNowPlayingMovies,
-  fetchUpcomingMovies,
-  searchMovies,
-  filterMoviesByGenre,
-  formatMovieData,
+    fetchNowPlayingMovies,
+    fetchUpcomingMovies,
+    searchMovies,
+    filterMoviesByGenre,
+    formatMovieData,
 } from "../utils/api";
 import {
-  fetchMoviesFromBackend,
-  formatBackendMovie,
-  checkBackendHealth,
+    fetchMoviesFromBackend,
+    formatBackendMovie,
+    checkBackendHealth,
 } from "../utils/backendApi";
 import { useDebounce } from "../hooks/useDebounce";
 import { API_CONFIG } from "../utils/constants";
 import { useNavigate } from "react-router-dom";
+import Pagination from "../components/Pagination.jsx";
 
 const Home = () => {
-  // State
-  const [activeTab, setActiveTab] = useState("now_playing");
-  const [movies, setMovies] = useState([]);
-  const [filteredMovies, setFilteredMovies] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeGenre, setActiveGenre] = useState(null);
-  const [upcomingPage, setUpcomingPage] = useState(1);
-  const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
-  const [useBackend, setUseBackend] = useState(true);
-  const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
-  const navigate = useNavigate();
+    // State
+    const [activeTab, setActiveTab] = useState("now_playing");
+    const [movies, setMovies] = useState([]);
+    const [filteredMovies, setFilteredMovies] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [activeGenre, setActiveGenre] = useState(null);
+    const [upcomingPage, setUpcomingPage] = useState(1);
+    const [hasMoreUpcoming, setHasMoreUpcoming] = useState(true);
+    const [useBackend, setUseBackend] = useState(true);
+    const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
+    const navigate = useNavigate();
 
-  // Debounce search query
-  const debouncedSearchQuery = useDebounce(
-    searchQuery,
-    API_CONFIG.debounceDelay,
-  );
-
-  // Hero carousel auto-play
-  useEffect(() => {
-    if (movies.length > 0) {
-      const interval = setInterval(() => {
-        setCurrentHeroSlide((prev) => (prev + 1) % Math.min(5, movies.length));
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [movies.length]);
-
-  // Check backend availability on mount
-  useEffect(() => {
-    const checkBackend = async () => {
-      const isAvailable = await checkBackendHealth();
-      setUseBackend(isAvailable);
-      if (isAvailable) {
-        console.log("✓ Using backend API for movies");
-      } else {
-        console.log("✗ Backend unavailable, using TMDB/mock data");
-      }
-    };
-    checkBackend();
-  }, []);
-
-  // Fetch movies based on active tab
-  useEffect(() => {
-    const loadMovies = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        let result;
-        let formattedMovies;
-
-        if (useBackend) {
-          // Map frontend tab names to backend status values
-          const statusMap = {
-            'now_playing': 'now-showing',
-            'upcoming': 'coming-soon'
-          };
-
-          const params = {
-            status: statusMap[activeTab] || activeTab,
-            search: debouncedSearchQuery.trim() || undefined,
-            page: activeTab === "upcoming" ? upcomingPage : 1,
-            limit: 20,
-          };
-
-          const backendMovies = await fetchMoviesFromBackend(params);
-
-          if (Array.isArray(backendMovies)) {
-            formattedMovies = backendMovies.map(formatBackendMovie);
-          } else {
-            formattedMovies = [];
-          }
-
-          setHasMoreUpcoming(false);
-        } else {
-          if (debouncedSearchQuery.trim()) {
-            result = await searchMovies(debouncedSearchQuery);
-          } else if (activeTab === "now_playing") {
-            result = await fetchNowPlayingMovies();
-          } else {
-            result = await fetchUpcomingMovies(upcomingPage);
-            setHasMoreUpcoming(result.total_pages > upcomingPage);
-          }
-
-          formattedMovies = result.results.map(formatMovieData);
-        }
-
-        setMovies(formattedMovies);
-        setFilteredMovies(formattedMovies);
-      } catch (err) {
-        console.error("Failed to load movies:", err);
-        setError(err.message || "Failed to load movies. Please try again.");
-
-        if (useBackend) {
-          console.log("Backend failed, switching to fallback...");
-          setUseBackend(false);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMovies();
-  }, [activeTab, debouncedSearchQuery, upcomingPage, useBackend]);
-
-  // Apply genre filter
-  useEffect(() => {
-    if (activeGenre) {
-      const filtered = filterMoviesByGenre(movies, activeGenre);
-      setFilteredMovies(filtered);
-    } else {
-      setFilteredMovies(movies);
-    }
-  }, [activeGenre, movies]);
-
-  const handleSearch = useCallback((query) => {
-    setSearchQuery(query);
-    setUpcomingPage(1);
-  }, []);
-
-  const handleTabChange = useCallback((tab) => {
-    setActiveTab(tab);
-    setSearchQuery("");
-    setActiveGenre(null);
-    setUpcomingPage(1);
-    setCurrentHeroSlide(0);
-  }, []);
-
-  const handleGenreChange = useCallback((genreId) => {
-    setActiveGenre(genreId);
-  }, []);
-
-  const handleLoadMore = () => {
-    if (hasMoreUpcoming && !loading) {
-      setUpcomingPage((prev) => prev + 1);
-    }
-  };
-
-  const clearFilters = useCallback(() => {
-    setSearchQuery("");
-    setActiveGenre(null);
-  }, []);
-
-  const nextSlide = () => {
-    setCurrentHeroSlide((prev) => (prev + 1) % Math.min(5, movies.length));
-  };
-
-  const prevSlide = () => {
-    setCurrentHeroSlide(
-      (prev) =>
-        (prev - 1 + Math.min(5, movies.length)) % Math.min(5, movies.length),
+    // Debounce search query
+    const debouncedSearchQuery = useDebounce(
+        searchQuery,
+        API_CONFIG.debounceDelay,
     );
-  };
 
-  const goToSlide = (index) => {
-    setCurrentHeroSlide(index);
-  };
+    // Hero carousel auto-play
+    useEffect(() => {
+        if (movies.length > 0) {
+            const interval = setInterval(() => {
+                setCurrentHeroSlide((prev) => (prev + 1) % Math.min(5, movies.length));
+            }, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [movies.length]);
 
-  const handleBookNow = (movieId) => {
-    navigate(`/booking/${movieId}`);
-  };
+    // Check backend availability on mount
+    useEffect(() => {
+        const checkBackend = async () => {
+            const isAvailable = await checkBackendHealth();
+            setUseBackend(isAvailable);
+            if (isAvailable) {
+                console.log("✓ Using backend API for movies");
+            } else {
+                console.log("✗ Backend unavailable, using TMDB/mock data");
+            }
+        };
+        checkBackend();
+    }, []);
 
-  // Hero Section Component
-  const HeroSection = () => {
-    const heroMovies = movies.slice(0, 5);
+    // Fetch movies based on active tab
+    useEffect(() => {
+        const loadMovies = async () => {
+            setLoading(true);
+            setError(null);
 
-    if (loading || heroMovies.length === 0) {
-      return (
-        <div className="relative h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] bg-primary-900 overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-12 h-12 text-white animate-spin" />
-          </div>
-        </div>
-      );
-    }
+            try {
+                let result;
+                let formattedMovies;
 
-    const currentMovie = heroMovies[currentHeroSlide];
-    const backdropUrl = currentMovie.backdropPath
-      ? `https://image.tmdb.org/t/p/original${currentMovie.backdropPath}`
-      : currentMovie.posterPath
-        ? `https://image.tmdb.org/t/p/original${currentMovie.posterPath}`
-        : "/placeholder-backdrop.jpg";
+                if (useBackend) {
+                    const statusMap = {
+                        'now_playing': 'now-showing',
+                        'upcoming': 'coming-soon'
+                    };
 
-    return (
-      <div className="relative h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] bg-primary-900 overflow-hidden">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0">
-          <img
-            src={backdropUrl}
-            alt={currentMovie.title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.src = "/placeholder-backdrop.jpg";
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-        </div>
+                    const params = {
+                        status: statusMap[activeTab] || activeTab,
+                        search: debouncedSearchQuery.trim() || undefined,
+                        page: activeTab === "upcoming" ? upcomingPage : 1,
+                        limit: 20,
+                    };
 
-        {/* Content */}
-        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col justify-center h-full max-w-2xl">
-            {/* Badge */}
-            <div className="mb-4">
-              <span className="inline-block px-3 py-1 bg-primary-900/80 backdrop-blur-sm text-white text-xs sm:text-sm font-semibold rounded-full border border-white/20">
-                {activeTab === "now_playing" ? "NOW PLAYING" : "COMING SOON"}
+                    const backendMovies = await fetchMoviesFromBackend(params);
+
+                    if (Array.isArray(backendMovies)) {
+                        formattedMovies = backendMovies.map(formatBackendMovie);
+                    } else {
+                        formattedMovies = [];
+                    }
+
+                    setHasMoreUpcoming(false);
+                } else {
+                    if (debouncedSearchQuery.trim()) {
+                        result = await searchMovies(debouncedSearchQuery);
+                    } else if (activeTab === "now_playing") {
+                        result = await fetchNowPlayingMovies();
+                    } else {
+                        result = await fetchUpcomingMovies(upcomingPage);
+                        setHasMoreUpcoming(result.total_pages > upcomingPage);
+                    }
+
+                    formattedMovies = result.results.map(formatMovieData);
+                }
+
+                setMovies(formattedMovies);
+                setFilteredMovies(formattedMovies);
+            } catch (err) {
+                console.error("Failed to load movies:", err);
+                setError(err.message || "Failed to load movies. Please try again.");
+
+                if (useBackend) {
+                    console.log("Backend failed, switching to fallback...");
+                    setUseBackend(false);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadMovies();
+    }, [activeTab, debouncedSearchQuery, upcomingPage, useBackend]);
+
+    // Apply genre filter
+    useEffect(() => {
+        if (activeGenre) {
+            const filtered = filterMoviesByGenre(movies, activeGenre);
+            setFilteredMovies(filtered);
+        } else {
+            setFilteredMovies(movies);
+        }
+    }, [activeGenre, movies]);
+
+    const handleSearch = useCallback((query) => {
+        setSearchQuery(query);
+        setUpcomingPage(1);
+    }, []);
+
+    const handleTabChange = useCallback((tab) => {
+        setActiveTab(tab);
+        setSearchQuery("");
+        setActiveGenre(null);
+        setUpcomingPage(1);
+        setCurrentHeroSlide(0);
+        setMovies([]); // Clear movies when switching tabs to prevent stale index
+    }, []);
+
+    const handleGenreChange = useCallback((genreId) => {
+        setActiveGenre(genreId);
+    }, []);
+
+    const handleLoadMore = () => {
+        if (hasMoreUpcoming && !loading) {
+            setUpcomingPage((prev) => prev + 1);
+        }
+    };
+
+    const clearFilters = useCallback(() => {
+        setSearchQuery("");
+        setActiveGenre(null);
+    }, []);
+
+    const nextSlide = () => {
+        const maxSlides = Math.min(5, movies.length);
+        if (maxSlides > 0) {
+            setCurrentHeroSlide((prev) => (prev + 1) % maxSlides);
+        }
+    };
+
+    const prevSlide = () => {
+        const maxSlides = Math.min(5, movies.length);
+        if (maxSlides > 0) {
+            setCurrentHeroSlide(
+                (prev) => (prev - 1 + maxSlides) % maxSlides,
+            );
+        }
+    };
+
+    const goToSlide = (index) => {
+        if (index >= 0 && index < Math.min(5, movies.length)) {
+            setCurrentHeroSlide(index);
+        }
+    };
+
+    const handleBookNow = (movieId) => {
+        navigate(`/booking/${movieId}`);
+    };
+
+    // Hero Section Component
+    const HeroSection = () => {
+        const heroMovies = movies.slice(0, 5);
+
+        if (loading || heroMovies.length === 0) {
+            return (
+                <div className="relative h-[500px] md:h-[600px] lg:h-[700px] bg-surface overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                            <Loader2 className="w-12 h-12 text-cinema-red animate-spin mx-auto mb-4" />
+                            <p className="text-text-muted">Loading featured movies...</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const currentMovie = heroMovies[currentHeroSlide];
+
+        // Safety check - if currentMovie is undefined, don't render
+        if (!currentMovie) {
+            return null;
+        }
+
+        const backdropUrl = currentMovie.backdropPath
+            ? `https://image.tmdb.org/t/p/original${currentMovie.backdropPath}`
+            : currentMovie.posterPath
+                ? `https://image.tmdb.org/t/p/original${currentMovie.posterPath}`
+                : "/placeholder-backdrop.jpg";
+
+        return (
+            <div className="relative h-[500px] sm:h-[550px] md:h-[600px] lg:h-[700px] bg-surface overflow-hidden">
+                {/* Background Image with Overlay */}
+                <div className="absolute inset-0">
+                    <img
+                        src={backdropUrl}
+                        alt={currentMovie.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                            e.target.src = "/placeholder-backdrop.jpg";
+                        }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-base-900 via-base-900/80 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-base-900 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-base-900/50 via-transparent to-transparent" />
+                </div>
+
+                {/* Content */}
+                <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col justify-end sm:justify-center h-full max-w-3xl pb-20 sm:pb-0">
+                        {/* Badge */}
+                        <div className="mb-2 sm:mb-3">
+              <span className="inline-flex items-center gap-1.5 glass px-2.5 py-1 text-[10px] sm:text-xs font-semibold rounded-full border border-cinema-red/30">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cinema-red opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cinema-red"></span>
+                </span>
+                  {activeTab === "now_playing" ? "NOW SHOWING" : "COMING SOON"}
               </span>
-            </div>
+                        </div>
 
-            {/* Title */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 drop-shadow-lg">
-              {currentMovie.title}
-            </h1>
+                        {/* Title */}
+                        <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-text mb-2 sm:mb-4 drop-shadow-2xl leading-tight">
+                            {currentMovie.title}
+                        </h1>
 
-            {/* Meta Info */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-6 text-white/90">
-              {currentMovie.vote_average && (
-                <div className="flex items-center space-x-1.5">
-                  <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 fill-current" />
-                  <span className="text-sm sm:text-base font-semibold">
+                        {/* Meta Info */}
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mb-3 sm:mb-5 text-text">
+                            {currentMovie.vote_average && (
+                                <div className="flex items-center gap-1 glass px-2 py-1 rounded-md text-[10px] sm:text-sm">
+                                    <Star className="w-3 h-3 sm:w-4 sm:h-4 text-cinema-gold fill-current" />
+                                    <span className="font-semibold">
                     {currentMovie.vote_average.toFixed(1)}
                   </span>
-                </div>
-              )}
-              {currentMovie.release_date && (
-                <div className="flex items-center space-x-1.5">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-sm sm:text-base">
+                                </div>
+                            )}
+                            {currentMovie.release_date && (
+                                <div className="flex items-center gap-1 glass px-2 py-1 rounded-md text-[10px] sm:text-sm">
+                                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                                    <span>
                     {new Date(currentMovie.release_date).getFullYear()}
                   </span>
-                </div>
-              )}
+                                </div>
+                            )}
 
-              {Array.isArray(currentMovie.genres) &&
-                currentMovie.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {currentMovie.genres.slice(0, 3).map((genre, idx) => {
-                      // Handle both string and object genres safely
-                      const genreName =
-                        typeof genre === "object" && genre !== null
-                          ? genre.name || JSON.stringify(genre)
-                          : String(genre);
+                            {Array.isArray(currentMovie.genres) &&
+                                currentMovie.genres.length > 0 && (
+                                    <div className="hidden md:flex flex-wrap gap-2">
+                                        {currentMovie.genres.slice(0, 2).map((genre, idx) => {
+                                            const genreName =
+                                                typeof genre === "object" && genre !== null
+                                                    ? genre.name || JSON.stringify(genre)
+                                                    : String(genre);
 
-                      return (
-                        <span
-                          key={idx}
-                          className="text-xs sm:text-sm px-2 py-0.5 bg-white/20 rounded backdrop-blur-sm"
-                        >
+                                            return (
+                                                <span
+                                                    key={idx}
+                                                    className="text-xs px-2.5 py-1 glass rounded-full border border-cinema-gold/20"
+                                                >
                           {genreName}
                         </span>
-                      );
-                    })}
-                  </div>
-                )}
-            </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                        </div>
 
-            {/* Overview */}
-            {currentMovie.overview && (
-              <p className="text-sm sm:text-base md:text-lg text-white/90 mb-6 sm:mb-8 line-clamp-2 sm:line-clamp-3 leading-relaxed">
-                {currentMovie.overview}
-              </p>
-            )}
+                        {/* Overview */}
+                        {currentMovie.overview && (
+                            <p className="hidden md:block text-sm lg:text-base text-text-muted mb-5 sm:mb-6 line-clamp-2 leading-relaxed max-w-2xl">
+                                {currentMovie.overview}
+                            </p>
+                        )}
 
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <button
-                onClick={() => handleBookNow(currentMovie.id)}
-                className="flex items-center justify-center space-x-2 px-6 sm:px-8 py-3 sm:py-4 bg-primary-900 hover:bg-primary-800 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-                <span className="text-sm sm:text-base">Book Tickets</span>
-              </button>
+                        {/* Buttons - Side by side on mobile */}
+                        <div className="flex gap-2 sm:gap-3 max-w-md">
+                            <button
+                                onClick={() => handleBookNow(currentMovie.id)}
+                                className="btn-primary flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm"
+                            >
+                                <Play className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
+                                <span>Book Now</span>
+                            </button>
 
-              <button
-                onClick={() => navigate(`/movie/${currentMovie.id}`)}
-                className="flex items-center justify-center space-x-2 px-6 sm:px-8 py-3 sm:py-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold rounded-lg transition-all duration-300 border border-white/30"
-              >
-                <Info className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base">More Info</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Arrows */}
-        {heroMovies.length > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white rounded-full transition-all duration-300 z-10"
-              aria-label="Previous slide"
-            >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-
-            <button
-              onClick={nextSlide}
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white rounded-full transition-all duration-300 z-10"
-              aria-label="Next slide"
-            >
-              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          </>
-        )}
-
-        {/* Dots Indicator */}
-        {heroMovies.length > 1 && (
-          <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex items-center space-x-2 sm:space-x-3 z-10">
-            {heroMovies.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`transition-all duration-300 rounded-full ${
-                  index === currentHeroSlide
-                    ? "w-8 sm:w-10 h-1.5 sm:h-2 bg-white"
-                    : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/50 hover:bg-white/75"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Loading skeleton
-  const LoadingSkeleton = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-      {Array.from({ length: 12 }).map((_, index) => (
-        <div
-          key={index}
-          className="bg-white border border-primary-100 rounded-lg overflow-hidden"
-        >
-          <div className="aspect-[2/3] bg-primary-100 animate-pulse"></div>
-          <div className="p-4 space-y-3">
-            <div className="h-4 bg-primary-100 animate-pulse rounded"></div>
-            <div className="h-3 bg-primary-100 animate-pulse rounded w-3/4"></div>
-            <div className="h-3 bg-primary-100 animate-pulse rounded w-1/2"></div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  // Error state
-  const ErrorState = () => (
-    <div className="text-center py-12">
-      <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-      <h3 className="text-lg font-medium text-primary-900 mb-2">
-        Something went wrong
-      </h3>
-      <p className="text-primary-600 mb-4">{error}</p>
-      <button
-        onClick={() => {
-          setError(null);
-          window.location.reload();
-        }}
-        className="px-6 py-2.5 bg-primary-900 text-white rounded-lg hover:bg-primary-800 transition-colors"
-      >
-        Try Again
-      </button>
-    </div>
-  );
-
-  // Empty state
-  const EmptyState = () => (
-    <div className="text-center py-12">
-      <Film className="mx-auto h-12 w-12 text-primary-400 mb-4" />
-      <h3 className="text-lg font-medium text-primary-900 mb-2">
-        No movies found
-      </h3>
-      <p className="text-primary-600 mb-4">
-        {debouncedSearchQuery
-          ? `No results for "${debouncedSearchQuery}"`
-          : activeGenre
-            ? "No movies in this genre"
-            : "No movies available at the moment"}
-      </p>
-      {(debouncedSearchQuery || activeGenre) && (
-        <button
-          onClick={clearFilters}
-          className="px-6 py-2.5 bg-white border-2 border-primary-900 text-primary-900 rounded-lg hover:bg-primary-50 transition-colors"
-        >
-          Clear Filters
-        </button>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Carousel Section */}
-      <HeroSection />
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
-        {/* Tab Navigation */}
-        <div className="flex items-center justify-center mb-6 sm:mb-8 border-b border-primary-200">
-          <button
-            onClick={() => handleTabChange("now_playing")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all duration-200 border-b-2 ${
-              activeTab === "now_playing"
-                ? "text-primary-900 border-primary-900"
-                : "text-primary-600 border-transparent hover:text-primary-900"
-            }`}
-          >
-            Now Playing
-          </button>
-          <button
-            onClick={() => handleTabChange("upcoming")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all duration-200 border-b-2 ${
-              activeTab === "upcoming"
-                ? "text-primary-900 border-primary-900"
-                : "text-primary-600 border-transparent hover:text-primary-900"
-            }`}
-          >
-            Coming Soon
-          </button>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="mb-6 sm:mb-8 space-y-4 sm:space-y-6">
-          <div className="max-w-2xl mx-auto">
-            <SearchBar
-              onSearch={handleSearch}
-              placeholder="Search movies in our theater..."
-              initialValue={searchQuery}
-              className="w-full"
-            />
-          </div>
-
-          {!debouncedSearchQuery && (
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-3">
-                <label className="block text-xs sm:text-sm font-medium text-primary-700">
-                  Filter by Genre
-                </label>
-                {activeGenre && (
-                  <button
-                    onClick={() => setActiveGenre(null)}
-                    className="text-xs text-primary-600 hover:text-primary-900"
-                  >
-                    Clear filter
-                  </button>
-                )}
-              </div>
-              <FilterBar
-                activeCategory={activeTab}
-                onCategoryChange={() => {}}
-                activeGenre={activeGenre}
-                onGenreChange={handleGenreChange}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Results Header */}
-        {!loading && filteredMovies.length > 0 && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-semibold text-primary-900">
-                {debouncedSearchQuery
-                  ? `Search Results`
-                  : activeGenre
-                    ? "Filtered Movies"
-                    : activeTab === "now_playing"
-                      ? "Now Playing - Book Your Tickets"
-                      : "Coming Soon - Pre-Book Tickets"}
-              </h2>
-              <p className="text-xs sm:text-sm text-primary-600 mt-1">
-                {filteredMovies.length}{" "}
-                {filteredMovies.length === 1 ? "movie" : "movies"}{" "}
-                {debouncedSearchQuery && `for "${debouncedSearchQuery}"`}
-              </p>
-            </div>
-
-            {(debouncedSearchQuery || activeGenre) && (
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 text-xs sm:text-sm bg-white border-2 border-primary-900 text-primary-900 rounded-lg hover:bg-primary-50 transition-colors"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Content */}
-        {loading && movies.length === 0 ? (
-          <LoadingSkeleton />
-        ) : error ? (
-          <ErrorState />
-        ) : filteredMovies.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-              {filteredMovies.map((movie) => (
-                <MovieCard key={movie.id} movie={movie} />
-              ))}
-            </div>
-
-            {activeTab === "upcoming" &&
-              hasMoreUpcoming &&
-              !debouncedSearchQuery &&
-              !activeGenre && (
-                <div className="text-center mt-8">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loading}
-                    className="px-6 py-3 bg-primary-900 text-white rounded-lg hover:bg-primary-800 disabled:opacity-50 transition-colors text-sm sm:text-base"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="inline w-4 h-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      "Load More Movies"
-                    )}
-                  </button>
+                            <button
+                                onClick={() => navigate(`/movie/${currentMovie.id}`)}
+                                className="btn-secondary flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm"
+                            >
+                                <Info className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <span>Details</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-              )}
-          </>
-        )}
 
-        {/* Info Banner */}
-        {!loading && !error && (
-          <div className="mt-8 sm:mt-12 p-4 sm:p-6 bg-primary-50 border border-primary-200 rounded-lg text-center">
-            <p className="text-xs sm:text-sm text-primary-700">
-              {activeTab === "now_playing"
-                ? "✨ These movies are currently showing in theaters. Select showtimes and book your seats!"
-                : "🎬 Upcoming releases - Pre-book your tickets before they hit theaters!"}
+                {/* Navigation Arrows - Hidden on mobile */}
+                {heroMovies.length > 1 && (
+                    <>
+                        <button
+                            onClick={prevSlide}
+                            className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 p-3 glass rounded-full hover:bg-white/10 transition-all z-10 group"
+                            aria-label="Previous slide"
+                        >
+                            <ChevronLeft className="w-6 h-6 group-hover:text-cinema-red transition-colors" />
+                        </button>
+
+                        <button
+                            onClick={nextSlide}
+                            className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-3 glass rounded-full hover:bg-white/10 transition-all z-10 group"
+                            aria-label="Next slide"
+                        >
+                            <ChevronRight className="w-6 h-6 group-hover:text-cinema-red transition-colors" />
+                        </button>
+                    </>
+                )}
+
+                {/* Dots Indicator */}
+                {heroMovies.length > 1 && (
+                    <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+                        {heroMovies.map((_, index) => (
+                            <button
+                                key={index}
+                                onClick={() => goToSlide(index)}
+                                className={`transition-all duration-300 rounded-full ${
+                                    index === currentHeroSlide
+                                        ? "w-6 sm:w-8 h-1.5 bg-cinema-red shadow-glow-sm"
+                                        : "w-1.5 h-1.5 bg-white/30 hover:bg-white/50"
+                                }`}
+                                aria-label={`Go to slide ${index + 1}`}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // Loading skeleton
+    const LoadingSkeleton = () => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+            {Array.from({ length: 12 }).map((_, index) => (
+                <div key={index} className="overflow-hidden">
+                    <div className="aspect-[2/3] bg-white/5 rounded-lg animate-pulse"></div>
+                    <div className="pt-2.5 pb-3 space-y-2">
+                        <div className="h-4 bg-white/5 rounded animate-pulse"></div>
+                        <div className="h-3 bg-white/5 rounded w-3/4 animate-pulse"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // Error state
+    const ErrorState = () => (
+        <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-danger/10 mb-4">
+                <AlertCircle className="w-8 h-8 text-danger" />
+            </div>
+            <h3 className="text-xl font-semibold text-text mb-2">
+                Something went wrong
+            </h3>
+            <p className="text-text-muted mb-6">{error}</p>
+            <button
+                onClick={() => {
+                    setError(null);
+                    window.location.reload();
+                }}
+                className="btn-primary"
+            >
+                Try Again
+            </button>
+        </div>
+    );
+
+    // Empty state
+    const EmptyState = () => (
+        <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-light mb-4">
+                <Film className="w-8 h-8 text-text-dim" />
+            </div>
+            <h3 className="text-xl font-semibold text-text mb-2">
+                No movies found
+            </h3>
+            <p className="text-text-muted mb-6">
+                {debouncedSearchQuery
+                    ? `No results for "${debouncedSearchQuery}"`
+                    : activeGenre
+                        ? "No movies in this genre"
+                        : "No movies available at the moment"}
             </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+            {(debouncedSearchQuery || activeGenre) && (
+                <button
+                    onClick={clearFilters}
+                    className="btn-secondary"
+                >
+                    Clear Filters
+                </button>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen bg-base-900">
+            {/* Hero Carousel Section */}
+            <HeroSection />
+
+            {/* Main Content - Better Container */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+                {/* Tab Navigation - Contained Section */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-center gap-2 p-1 bg-white/5 rounded-lg max-w-md mx-auto">
+                        <button
+                            onClick={() => handleTabChange("now_playing")}
+                            className={`flex-1 px-6 py-2.5 text-sm font-medium rounded-md transition-all ${
+                                activeTab === "now_playing"
+                                    ? "bg-cinema-red text-white shadow-lg"
+                                    : "text-white/70 hover:text-white"
+                            }`}
+                        >
+                            Now Playing
+                        </button>
+                        <button
+                            onClick={() => handleTabChange("upcoming")}
+                            className={`flex-1 px-6 py-2.5 text-sm font-medium rounded-md transition-all ${
+                                activeTab === "upcoming"
+                                    ? "bg-cinema-red text-white shadow-lg"
+                                    : "text-white/70 hover:text-white"
+                            }`}
+                        >
+                            Coming Soon
+                        </button>
+                    </div>
+                </div>
+
+                {/* Search Section - Clean Container */}
+                <div className="mb-8">
+                    <div className="max-w-3xl mx-auto">
+                        <SearchBar
+                            onSearch={handleSearch}
+                            placeholder="Search for movies..."
+                            initialValue={searchQuery}
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+
+                {/* Filters Section - Only show when not searching */}
+                {!debouncedSearchQuery && (
+                    <div className="mb-10">
+                        <div className="text-center mb-4">
+                            <h3 className="text-sm font-medium text-white/60 uppercase tracking-wider">
+                                Filter by Genre
+                            </h3>
+                        </div>
+                        <FilterBar
+                            activeGenre={activeGenre}
+                            onGenreChange={handleGenreChange}
+                        />
+                    </div>
+                )}
+
+                {/* Results Section - Clean Separator */}
+                {!loading && filteredMovies.length > 0 && (
+                    <div className="mb-8 pb-6 border-b border-white/10">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                                    {debouncedSearchQuery
+                                        ? "Search Results"
+                                        : activeGenre
+                                            ? "Filtered Movies"
+                                            : activeTab === "now_playing"
+                                                ? "Now Playing"
+                                                : "Coming Soon"}
+                                </h2>
+                                <p className="text-sm text-white/60">
+                                    {filteredMovies.length} {filteredMovies.length === 1 ? "movie" : "movies"} found
+                                    {debouncedSearchQuery && (
+                                        <span className="ml-1">
+                                            for <span className="text-cinema-red font-medium">"{debouncedSearchQuery}"</span>
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+
+                            {(debouncedSearchQuery || activeGenre) && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="btn-secondary text-sm whitespace-nowrap"
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Content Area */}
+                {loading && movies.length === 0 ? (
+                    <LoadingSkeleton />
+                ) : error ? (
+                    <ErrorState />
+                ) : filteredMovies.length === 0 ? (
+                    <EmptyState />
+                ) : (
+                    <>
+                        {/* Movie Grid - Optimized Spacing */}
+                        <div className="mb-10">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                                {filteredMovies.map((movie) => (
+                                    <MovieCard key={movie.id} movie={movie} />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Load More Section - Centered & Clean */}
+                        {activeTab === "upcoming" &&
+                            hasMoreUpcoming &&
+                            !debouncedSearchQuery &&
+                            !activeGenre && (
+                                <div className="text-center py-8 border-t border-white/10">
+                                    <button
+                                        onClick={handleLoadMore}
+                                        disabled={loading}
+                                        className="btn-primary px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="inline w-4 h-4 mr-2 animate-spin" />
+                                                Loading More...
+                                            </>
+                                        ) : (
+                                            "Load More Movies"
+                                        )}
+                                    </button>
+                                    <p className="text-xs text-white/40 mt-3">
+                                        Showing {filteredMovies.length} movies
+                                    </p>
+                                </div>
+                            )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
 };
 
 export default Home;

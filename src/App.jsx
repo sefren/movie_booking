@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
@@ -10,10 +11,10 @@ import MovieDetails from "./pages/MovieDetail";
 
 function AppContent() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-base-900 flex flex-col">
       <Header showSearch={true} />
 
-      <main>
+      <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/movie/:id" element={<MovieDetails />} />
@@ -24,12 +25,12 @@ function AppContent() {
           <Route
             path="*"
             element={
-              <div className="min-h-screen bg-white flex items-center justify-center">
+              <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="text-center">
-                  <h1 className="text-4xl font-bold text-primary-900 mb-4">
+                  <h1 className="text-4xl font-bold text-white mb-4">
                     404
                   </h1>
-                  <p className="text-primary-600 mb-6">Page not found</p>
+                  <p className="text-white/60 mb-6">Page not found</p>
                   <a href="/" className="btn-primary">
                     Back to Home
                   </a>
@@ -39,6 +40,8 @@ function AppContent() {
           />
         </Routes>
       </main>
+
+      <Footer />
     </div>
   );
 }

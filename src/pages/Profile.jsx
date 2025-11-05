@@ -161,141 +161,94 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-base-900 grid place-items-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary-900 mx-auto mb-4" />
-          <p className="text-primary-600">Loading profile...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-cinema-red mx-auto mb-4" />
+          <p className="text-text-muted">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-primary-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-base-900">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+
         {/* Profile Header */}
-        <div className="bg-white border border-primary-200 p-6 mb-8">
-          <div className="flex items-start justify-between mb-6">
-            <h1 className="text-3xl font-bold text-primary-900">My Profile</h1>
+        <div className="pb-6 border-b border-surface-border/50 mb-6">
+          <div className="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-text mb-1">My Profile</h1>
+              <p className="text-sm text-text-muted">Manage your account</p>
+            </div>
             {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 text-primary-600 hover:text-primary-900"
-              >
+              <button onClick={() => setIsEditing(true)} className="btn-secondary flex items-center gap-2">
                 <Edit className="w-4 h-4" />
-                <span className="text-sm">Edit Profile</span>
+                <span>Edit</span>
               </button>
             ) : (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleUpdateProfile}
-                  disabled={updateLoading}
-                  className="flex items-center space-x-2 text-green-600 hover:text-green-800 disabled:opacity-50"
-                >
+              <div className="flex items-center gap-2">
+                <button onClick={handleUpdateProfile} disabled={updateLoading} className="btn-primary flex items-center gap-2">
                   <Save className="w-4 h-4" />
-                  <span className="text-sm">Save</span>
+                  <span>Save</span>
                 </button>
                 <button
                   onClick={() => {
                     setIsEditing(false);
-                    setEditForm({
-                      name: user?.name || "",
-                      phone: user?.phone || "",
-                    });
+                    setEditForm({ name: user?.name || "", phone: user?.phone || "" });
                   }}
-                  className="flex items-center space-x-2 text-red-600 hover:text-red-800"
+                  className="btn-ghost flex items-center gap-2"
                 >
                   <X className="w-4 h-4" />
-                  <span className="text-sm">Cancel</span>
+                  <span>Cancel</span>
                 </button>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <User className="w-5 h-5 text-primary-600" />
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="name"
-                    value={editForm.name}
-                    onChange={handleEditChange}
-                    className="flex-1 px-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
-                    placeholder="Your name"
-                  />
-                ) : (
-                  <div>
-                    <p className="text-sm text-primary-600">Name</p>
-                    <p className="font-medium text-primary-900">{user?.name}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <Mail className="w-5 h-5 text-primary-600" />
-                <div>
-                  <p className="text-sm text-primary-600">Email</p>
-                  <p className="font-medium text-primary-900">{user?.email}</p>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-xs text-text-dim mb-1">Name</p>
+              {isEditing ? (
+                <input type="text" name="name" value={editForm.name} onChange={handleEditChange} className="input-field" placeholder="Your name" />
+              ) : (
+                <p className="font-medium text-text">{user?.name}</p>
+              )}
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Phone className="w-5 h-5 text-primary-600" />
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={editForm.phone}
-                    onChange={handleEditChange}
-                    pattern="[0-9]{10,15}"
-                    className="flex-1 px-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
-                    placeholder="Your phone"
-                  />
-                ) : (
-                  <div>
-                    <p className="text-sm text-primary-600">Phone</p>
-                    <p className="font-medium text-primary-900">
-                      {user?.phone}
-                    </p>
-                  </div>
-                )}
-              </div>
+            <div>
+              <p className="text-xs text-text-dim mb-1">Email</p>
+              <p className="font-medium text-text truncate">{user?.email}</p>
+            </div>
 
-              <div className="flex items-center space-x-3">
-                <Ticket className="w-5 h-5 text-primary-600" />
-                <div>
-                  <p className="text-sm text-primary-600">Total Bookings</p>
-                  <p className="font-medium text-primary-900">
-                    {bookings.length}
-                  </p>
-                </div>
-              </div>
+            <div>
+              <p className="text-xs text-text-dim mb-1">Phone</p>
+              {isEditing ? (
+                <input type="tel" name="phone" value={editForm.phone} onChange={handleEditChange} className="input-field" placeholder="Your phone" />
+              ) : (
+                <p className="font-medium text-text">{user?.phone}</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-xs text-text-dim mb-1">Total Bookings</p>
+              <p className="font-medium text-text">{bookings.length}</p>
             </div>
           </div>
         </div>
 
         {/* Bookings Section */}
-        <div className="bg-white border border-primary-200 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
             <div>
-              <h2 className="text-2xl font-bold text-primary-900">
-                My Bookings
-              </h2>
+              <h2 className="text-xl sm:text-2xl font-semibold text-text">My Bookings</h2>
               {lastUpdated && (
-                <p className="text-xs text-primary-500 mt-1">
-                  Last updated: {lastUpdated.toLocaleTimeString()}
+                <p className="text-xs text-text-dim mt-0.5">
+                  Updated {lastUpdated.toLocaleTimeString()}
                 </p>
               )}
             </div>
-            <button
-              onClick={fetchBookings}
-              disabled={loading}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary-900 text-white hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm rounded"
-            >
+            <button onClick={fetchBookings} disabled={loading} className="btn-secondary flex items-center gap-2">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
@@ -303,173 +256,96 @@ const Profile = () => {
 
           {error ? (
             <div className="text-center py-12">
-              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-              <h3 className="text-lg font-medium text-primary-900 mb-2">
-                Failed to load bookings
-              </h3>
-              <p className="text-primary-600">{error}</p>
+              <AlertCircle className="mx-auto h-10 w-10 text-text-dim mb-3" />
+              <h3 className="text-base font-medium text-text mb-1">Failed to load bookings</h3>
+              <p className="text-sm text-text-muted">{error}</p>
             </div>
           ) : bookings.length === 0 ? (
             <div className="text-center py-12">
-              <Ticket className="mx-auto h-12 w-12 text-primary-400 mb-4" />
-              <h3 className="text-lg font-medium text-primary-900 mb-2">
-                No bookings yet
-              </h3>
-              <p className="text-primary-600 mb-6">
-                Start booking your favorite movies now!
-              </p>
-              <button onClick={() => navigate("/")} className="btn-primary">
-                Browse Movies
-              </button>
+              <Ticket className="h-10 w-10 mx-auto mb-3 text-text-dim" />
+              <h3 className="text-base font-medium text-text mb-1">No bookings yet</h3>
+              <p className="text-sm text-text-muted mb-4">Start booking your favorite movies now!</p>
+              <button onClick={() => navigate("/")} className="btn-primary">Browse Movies</button>
             </div>
           ) : (
             <div className="space-y-4">
               {bookings.map((booking) => {
-                const timeRemaining =
-                  booking.status === "pending"
-                    ? getTimeRemaining(booking.lockedUntil)
-                    : null;
+                const timeRemaining = booking.status === "pending" ? getTimeRemaining(booking.lockedUntil) : null;
                 const isExpired = timeRemaining === "Expired";
 
-
                 return (
-                  <div
-                    key={booking._id}
-                    className="border border-primary-200 p-4 hover:border-primary-300 transition-colors"
-                  >
-                    <div className="flex flex-col md:flex-row gap-4">
-                      {/* Movie Poster */}
+                  <div key={booking._id} className="border border-surface-border/50 rounded p-4 hover:border-text/20 transition-colors">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {/* Poster */}
                       <div className="flex-shrink-0">
-                        <div className="w-24 h-36 bg-primary-100">
-                          {booking.movieId?.posterPath ? (
-                            <img
-                              src={getImageUrl(
-                                booking.movieId.posterPath,
-                                "poster",
-                                "small",
-                              )}
-                              alt={booking.movieId?.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Ticket className="h-8 w-8 text-primary-400" />
-                            </div>
-                          )}
-                        </div>
+                        {booking.movieId?.posterPath ? (
+                          <img
+                            src={getImageUrl(booking.movieId.posterPath, "poster", "small")}
+                            alt={booking.movieId?.title}
+                            className="w-16 h-24 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-16 h-24 flex items-center justify-center bg-surface-light rounded">
+                            <Ticket className="h-6 w-6 text-text-dim" />
+                          </div>
+                        )}
                       </div>
 
-                      {/* Booking Details */}
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-start justify-between">
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-text truncate">{booking.movieId?.title || "Movie"}</h3>
+                            <p className="text-xs text-text-dim mt-0.5">ID: {booking.bookingId}</p>
+                          </div>
+                          <span className={`ml-2 px-2 py-1 text-xs font-medium rounded ${getStatusColor(booking.status)}`}>
+                            {booking.status?.toUpperCase()}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-3">
                           <div>
-                            <h3 className="text-lg font-semibold text-primary-900">
-                              {booking.movieId?.title || "Movie"}
-                            </h3>
-                            <p className="text-sm text-primary-600">
-                              Booking ID: {booking.bookingId}
-                            </p>
+                            <p className="text-xs text-text-dim">Date</p>
+                            <p className="text-text">{formatDate(booking.showtime?.date)}</p>
                           </div>
-                          <div className="text-right">
-                            <span
-                              className={`inline-block px-3 py-1 text-xs font-medium border ${getStatusColor(
-                                booking.status,
-                              )}`}
-                            >
-                              {booking.status?.toUpperCase()}
-                            </span>
-                            {booking.status === "pending" &&
-                              timeRemaining &&
-                              !isExpired && (
-                                <p className="text-xs text-yellow-600 mt-1">
-                                  Expires in: {timeRemaining}
-                                </p>
-                              )}
-                            {isExpired && (
-                              <p className="text-xs text-red-600 mt-1">
-                                Payment expired
-                              </p>
-                            )}
+                          <div>
+                            <p className="text-xs text-text-dim">Time</p>
+                            <p className="text-text">{formatTime(booking.showtime?.time)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-text-dim">Seats</p>
+                            <p className="text-text truncate">{booking.seats?.map((s) => s.seatId).join(", ")}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-text-dim">Total</p>
+                            <p className="text-text font-medium">${booking.totalAmount?.toFixed(2)}</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          <div className="flex items-center space-x-2 text-primary-600">
-                            <Calendar className="w-4 h-4" />
-                            <span>{formatDate(booking.showtime?.date)}</span>
-                          </div>
-
-                          <div className="flex items-center space-x-2 text-primary-600">
-                            <Clock className="w-4 h-4" />
-                            <span>{formatTime(booking.showtime?.time)}</span>
-                          </div>
-
-                          <div className="flex items-center space-x-2 text-primary-600">
-                            <MapPin className="w-4 h-4" />
-                            <span>
-                              {booking.screenId?.name} (
-                              {booking.screenId?.screenType})
-                            </span>
-                          </div>
-
-                          <div className="flex items-center space-x-2 text-primary-600">
-                            <Ticket className="w-4 h-4" />
-                            <span>
-                              Seats:{" "}
-                              {booking.seats?.map((s) => s.seatId).join(", ")}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-primary-100">
-                          <span className="text-sm text-primary-600">
-                            Total Amount:
-                          </span>
-                          <span className="text-lg font-bold text-primary-900">
-                            ${booking.totalAmount?.toFixed(2)}
-                          </span>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-2">
                           {booking.status === "confirmed" && (
                             <>
-                              <button
-                                onClick={() => handleViewTicket(booking)}
-                                className="flex items-center space-x-2 px-4 py-2 bg-primary-900 text-white hover:bg-primary-800 text-sm"
-                              >
-                                <Eye className="w-4 h-4" />
-                                <span>View Ticket</span>
+                              <button onClick={() => handleViewTicket(booking)} className="btn-secondary text-xs py-2 px-3">
+                                <Eye className="w-3 h-3 inline mr-1" />
+                                View
                               </button>
-                              <button
-                                onClick={() =>
-                                  alert("Download feature coming soon")
-                                }
-                                className="flex items-center space-x-2 px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-50 text-sm"
-                              >
-                                <Download className="w-4 h-4" />
-                                <span>Download</span>
+                              <button onClick={() => alert("Download coming soon")} className="btn-ghost text-xs py-2 px-3">
+                                <Download className="w-3 h-3 inline mr-1" />
+                                Download
                               </button>
                             </>
                           )}
-
                           {booking.status === "pending" && !isExpired && (
-                            <button
-                              onClick={() => handleCompletePayment(booking)}
-                              className="flex items-center space-x-2 px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-700 text-sm"
-                            >
-                              <CreditCard className="w-4 h-4" />
-                              <span>Complete Payment</span>
+                            <button onClick={() => handleCompletePayment(booking)} className="btn-primary text-xs py-2 px-3">
+                              <CreditCard className="w-3 h-3 inline mr-1" />
+                              Complete Payment
                             </button>
                           )}
-
                           {(booking.status === "cancelled" || isExpired) && (
-                            <button
-                              onClick={() => handleRetry(booking)}
-                              className="flex items-center space-x-2 px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-50 text-sm"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                              <span>Book Again</span>
+                            <button onClick={() => handleRetry(booking)} className="btn-secondary text-xs py-2 px-3">
+                              <RefreshCw className="w-3 h-3 inline mr-1" />
+                              Book Again
                             </button>
                           )}
                         </div>

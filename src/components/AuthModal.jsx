@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { X, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Mail, Lock, User, Phone, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
@@ -19,6 +19,26 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
     password: "",
     phone: "",
   });
+
+  // Reset everything when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setMode(initialMode);
+      setError("");
+      setLoading(false);
+      setLoginForm({ email: "", password: "" });
+      setRegisterForm({ name: "", email: "", password: "", phone: "" });
+    }
+  }, [isOpen, initialMode]);
+
+  // Close on escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && isOpen) onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -40,8 +60,6 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
     try {
       await login(loginForm.email, loginForm.password);
       onClose();
-      // Reset form
-      setLoginForm({ email: "", password: "" });
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.");
     } finally {
@@ -63,8 +81,6 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
     try {
       await register(registerForm);
       onClose();
-      // Reset form
-      setRegisterForm({ name: "", email: "", password: "", phone: "" });
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
@@ -75,68 +91,73 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
   const switchMode = () => {
     setMode(mode === "login" ? "register" : "login");
     setError("");
+    setLoginForm({ email: "", password: "" });
+    setRegisterForm({ name: "", email: "", password: "", phone: "" });
   };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-          onClick={onClose}
-        ></div>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
 
-        <div className="relative bg-white w-full max-w-md p-6 shadow-xl">
+      {/* Modal */}
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="relative bg-surface border border-surface-border rounded-lg w-full max-w-md p-6 shadow-2xl">
+          {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-primary-400 hover:text-primary-600"
+            className="absolute top-4 right-4 text-text-muted hover:text-text transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
 
-          <h2 className="text-2xl font-bold text-primary-900 mb-6">
+          {/* Title */}
+          <h2 className="text-2xl font-semibold text-text mb-6">
             {mode === "login" ? "Welcome Back" : "Create Account"}
           </h2>
 
+          {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
+            <div className="mb-4 p-3 rounded bg-danger/10 border border-danger/20 text-danger text-sm flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
 
+          {/* Forms */}
           {mode === "login" ? (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-primary-700 mb-1">
-                  Email
-                </label>
+                <label className="block text-xs text-text-dim mb-1">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-dim" />
                   <input
                     type="email"
                     name="email"
                     value={loginForm.email}
                     onChange={handleLoginChange}
                     required
-                    className="w-full pl-10 pr-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
+                    className="input-field pl-10"
                     placeholder="your@email.com"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary-700 mb-1">
-                  Password
-                </label>
+                <label className="block text-xs text-text-dim mb-1">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-dim" />
                   <input
                     type="password"
                     name="password"
                     value={loginForm.password}
                     onChange={handleLoginChange}
                     required
-                    className="w-full pl-10 pr-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
-                    placeholder="Enter your password"
+                    className="input-field pl-10"
+                    placeholder="Your password"
                   />
                 </div>
               </div>
@@ -144,11 +165,11 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-primary flex items-center justify-center disabled:opacity-50"
+                className="w-full btn-primary disabled:opacity-50"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin inline" />
                     Logging in...
                   </>
                 ) : (
@@ -159,47 +180,41 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-primary-700 mb-1">
-                  Full Name
-                </label>
+                <label className="block text-xs text-text-dim mb-1">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-dim" />
                   <input
                     type="text"
                     name="name"
                     value={registerForm.name}
                     onChange={handleRegisterChange}
                     required
-                    className="w-full pl-10 pr-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
+                    className="input-field pl-10"
                     placeholder="John Doe"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary-700 mb-1">
-                  Email
-                </label>
+                <label className="block text-xs text-text-dim mb-1">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-dim" />
                   <input
                     type="email"
                     name="email"
                     value={registerForm.email}
                     onChange={handleRegisterChange}
                     required
-                    className="w-full pl-10 pr-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
+                    className="input-field pl-10"
                     placeholder="your@email.com"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary-700 mb-1">
-                  Phone
-                </label>
+                <label className="block text-xs text-text-dim mb-1">Phone</label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-dim" />
                   <input
                     type="tel"
                     name="phone"
@@ -207,18 +222,16 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
                     onChange={handleRegisterChange}
                     required
                     pattern="[0-9]{10,15}"
-                    className="w-full pl-10 pr-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
+                    className="input-field pl-10"
                     placeholder="1234567890"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary-700 mb-1">
-                  Password
-                </label>
+                <label className="block text-xs text-text-dim mb-1">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-dim" />
                   <input
                     type="password"
                     name="password"
@@ -226,7 +239,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
                     onChange={handleRegisterChange}
                     required
                     minLength="6"
-                    className="w-full pl-10 pr-3 py-2 border border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-900"
+                    className="input-field pl-10"
                     placeholder="At least 6 characters"
                   />
                 </div>
@@ -235,11 +248,11 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-primary flex items-center justify-center disabled:opacity-50"
+                className="w-full btn-primary disabled:opacity-50"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin inline" />
                     Creating account...
                   </>
                 ) : (
@@ -249,14 +262,17 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
             </form>
           )}
 
-          <div className="mt-6 text-center">
+          {/* Switch Mode */}
+          <div className="mt-6 text-center text-sm">
+            <span className="text-text-muted">
+              {mode === "login" ? "Don't have an account?" : "Already have an account?"}
+            </span>
+            {" "}
             <button
               onClick={switchMode}
-              className="text-sm text-primary-600 hover:text-primary-900"
+              className="text-cinema-red hover:text-cinema-red-dark font-medium"
             >
-              {mode === "login"
-                ? "Don't have an account? Register"
-                : "Already have an account? Login"}
+              {mode === "login" ? "Sign up" : "Login"}
             </button>
           </div>
         </div>

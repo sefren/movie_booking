@@ -76,7 +76,7 @@ export const VALIDATION_RULES = {
     minLength: 10,
     maxLength: 15,
   },
-  maxSeatsPerBooking: 10,
+  maxSeatsPerBooking: 20,
   minSeatsPerBooking: 1,
 };
 

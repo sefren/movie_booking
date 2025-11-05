@@ -9,7 +9,7 @@ import {
   Download,
   Share2,
   Home,
-  Film,
+  Film, Ticket, CreditCard,  AlertCircle
 } from "lucide-react";
 import { getImageUrl } from "../utils/api";
 import { THEATER_CONFIG } from "../utils/constants";
@@ -59,13 +59,13 @@ const Confirmation = () => {
 
   if (!booking) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Film className="w-12 h-12 text-primary-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-primary-900 mb-2">
+      <div className="min-h-screen bg-base-900 grid place-items-center">
+        <div className="text-center card">
+          <Film className="w-12 h-12 text-text-dim mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-text mb-2">
             No booking found
           </h3>
-          <p className="text-primary-600 mb-4">
+          <p className="text-text-muted mb-4">
             Unable to load booking confirmation.
           </p>
           <button onClick={() => navigate("/")} className="btn-primary">
@@ -83,262 +83,155 @@ const Confirmation = () => {
   );
 
   return (
-    <div className="min-h-screen bg-primary-50">
-      {/* Success Header */}
-      <div className="bg-green-500 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <CheckCircle className="w-16 h-16 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold mb-2">Booking Confirmed!</h1>
-            <p className="text-green-100 text-lg">
-              Your movie tickets have been successfully booked
-            </p>
+    <div className="min-h-screen bg-base-900">
+      {/* Clean Header */}
+      <div className="border-b border-surface-border/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-success" />
+              <div>
+                <h1 className="text-lg sm:text-xl font-semibold text-text">Booking Confirmed</h1>
+                <p className="text-xs text-text-dim">ID: {booking.bookingId}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={handleDownloadTicket} className="btn-ghost text-xs sm:text-sm">
+                <Download className="w-4 h-4" />
+              </button>
+              <button onClick={handleShareBooking} className="btn-ghost text-xs sm:text-sm">
+                <Share2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Confirmation Details */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white border border-primary-200 overflow-hidden">
-          {/* Booking Header */}
-          <div className="bg-primary-50 px-6 py-4 border-b border-primary-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-primary-900">
-                  Booking Details
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* Left Column - Movie & Details */}
+          <div className="lg:col-span-8">
+            {/* Movie Section */}
+            <div className="flex gap-4 pb-6 border-b border-surface-border/50">
+              {posterUrl ? (
+                <img
+                  src={posterUrl}
+                  alt={booking.movie?.title || "Movie"}
+                  className="w-20 h-28 sm:w-24 sm:h-36 object-cover rounded"
+                  onError={(e) => { e.target.src = "/placeholder-movie-poster.jpg"; }}
+                />
+              ) : (
+                <div className="w-20 h-28 sm:w-24 sm:h-36 bg-surface-light rounded flex items-center justify-center">
+                  <Film className="h-6 w-6 text-text-dim" />
+                </div>
+              )}
+
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-semibold text-text mb-4">
+                  {booking.movie?.title || booking.movieId?.title || "Movie"}
                 </h2>
-                <p className="text-primary-600 mt-1">
-                  Booking ID: {booking.bookingId}
-                </p>
-              </div>
-              <div className="mt-3 sm:mt-0">
-                <p className="text-sm text-primary-600">Transaction ID</p>
-                <p className="font-medium text-primary-900">
-                  {booking.transactionId}
-                </p>
+
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <p className="text-text-dim text-xs mb-1">Date</p>
+                    <p className="text-text font-medium">
+                      {new Date(booking.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text-dim text-xs mb-1">Time</p>
+                    <p className="text-text font-medium">{booking.showtime?.time || booking.showtime}</p>
+                  </div>
+                  <div>
+                    <p className="text-text-dim text-xs mb-1">Cinema</p>
+                    <p className="text-text font-medium">Studio 9</p>
+                  </div>
+                  <div>
+                    <p className="text-text-dim text-xs mb-1">Seats</p>
+                    <p className="text-text font-medium">
+                      {Array.isArray(booking.seats) ? booking.seats.map((s) => (typeof s === "string" ? s : s.seatId)).join(", ") : ""}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Movie & Booking Info */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Movie Information */}
-              <div>
-                <div className="flex space-x-4 mb-6">
-                  {posterUrl ? (
-                    <img
-                      src={posterUrl}
-                      alt={booking.movie?.title || "Movie"}
-                      className="w-24 h-36 object-cover border border-primary-200"
-                      onError={(e) => {
-                        e.target.src = "/placeholder-movie-poster.jpg";
-                      }}
-                    />
-                  ) : (
-                    <div className="w-24 h-36 bg-primary-100 flex items-center justify-center border border-primary-200">
-                      <Film className="h-8 w-8 text-primary-400" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-primary-900 mb-2">
-                      {booking.movie?.title ||
-                        booking.movieId?.title ||
-                        "Movie"}
-                    </h3>
-                    {(booking.movie?.runtime || booking.movie?.duration) && (
-                      <div className="flex items-center space-x-1 text-primary-600 mb-2">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">
-                          {booking.movie?.runtime || booking.movie?.duration}{" "}
-                          minutes
-                        </span>
-                      </div>
-                    )}
-                    <div className="text-sm text-primary-600">
-                      <p>Enjoy your movie experience!</p>
-                    </div>
-                  </div>
+            {/* Customer Info */}
+            <div className="py-6 border-b border-surface-border/50">
+              <h3 className="text-xs uppercase tracking-wider text-text-dim mb-4">Contact Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-text-dim text-xs mb-1">Name</p>
+                  <p className="text-text">{booking.customerInfo.name}</p>
                 </div>
-
-                {/* Show Details */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="w-5 h-5 text-primary-600" />
-                    <div>
-                      <p className="text-sm text-primary-600">Date</p>
-                      <p className="font-medium text-primary-900">
-                        {new Date(booking.date).toLocaleDateString("en-US", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <Clock className="w-5 h-5 text-primary-600" />
-                    <div>
-                      <p className="text-sm text-primary-600">Show Time</p>
-                      <p className="font-medium text-primary-900">
-                        {booking.showtime?.time || booking.showtime}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <MapPin className="w-5 h-5 text-primary-600" />
-                    <div>
-                      <p className="text-sm text-primary-600">Cinema</p>
-                      <p className="font-medium text-primary-900">
-                        Cinema Multiplex
-                      </p>
-                      <p className="text-sm text-primary-600">
-                        Theater 1, Screen 1
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <Users className="w-5 h-5 text-primary-600" />
-                    <div>
-                      <p className="text-sm text-primary-600">Seats</p>
-                      <p className="font-medium text-primary-900">
-                        {Array.isArray(booking.seats)
-                          ? booking.seats
-                              .map((s) =>
-                                typeof s === "string" ? s : s.seatId,
-                              )
-                              .join(", ")
-                          : ""}{" "}
-                        ({booking.seats.length} tickets)
-                      </p>
-                    </div>
-                  </div>
+                <div>
+                  <p className="text-text-dim text-xs mb-1">Email</p>
+                  <p className="text-text truncate">{booking.customerInfo.email}</p>
+                </div>
+                <div>
+                  <p className="text-text-dim text-xs mb-1">Phone</p>
+                  <p className="text-text">{booking.customerInfo.phone}</p>
                 </div>
               </div>
+            </div>
 
-              {/* Customer & Payment Info */}
-              <div className="space-y-6">
-                {/* Customer Information */}
+            {/* Important Info */}
+            <div className="py-6">
+              <div className="flex gap-3 text-sm">
+                <AlertCircle className="w-4 h-4 text-text-dim flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-lg font-semibold text-primary-900 mb-3">
-                    Customer Information
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-primary-600">Name: </span>
-                      <span className="font-medium text-primary-900">
-                        {booking.customerInfo.name}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-primary-600">Email: </span>
-                      <span className="font-medium text-primary-900">
-                        {booking.customerInfo.email}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-primary-600">Phone: </span>
-                      <span className="font-medium text-primary-900">
-                        {booking.customerInfo.phone}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment Summary */}
-                <div>
-                  <h4 className="text-lg font-semibold text-primary-900 mb-3">
-                    Payment Summary
-                  </h4>
-                  <div className="bg-primary-50 border border-primary-200 p-4 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-primary-600">
-                        Tickets ({booking.seats.length})
-                      </span>
-                      <span className="text-primary-900">
-                        {THEATER_CONFIG.currencySymbol}
-                        {(booking.total || booking.totalAmount || 0).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-primary-600">Booking Fee</span>
-                      <span className="text-primary-900">
-                        {THEATER_CONFIG.currencySymbol}0.00
-                      </span>
-                    </div>
-                    <div className="flex justify-between font-semibold text-lg border-t border-primary-200 pt-2">
-                      <span className="text-primary-900">Total Paid</span>
-                      <span className="text-primary-900">
-                        {THEATER_CONFIG.currencySymbol}
-                        {(booking.total || booking.totalAmount || 0).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600 mt-2 flex items-center">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Payment successful
+                  <p className="text-text-muted text-xs space-y-1">
+                    <span className="block">• Arrive 15 minutes early</span>
+                    <span className="block">• Bring valid ID</span>
+                    <span className="block">• Mobile tickets accepted</span>
                   </p>
                 </div>
-
-                {/* Important Information */}
-                <div className="bg-yellow-50 border border-yellow-200 p-4">
-                  <h5 className="font-medium text-yellow-900 mb-2">
-                    Important Information
-                  </h5>
-                  <ul className="text-sm text-yellow-800 space-y-1">
-                    <li> Please arrive 15 minutes before show time</li>
-                    <li> Bring a valid ID for verification</li>
-                    <li> No outside food or drinks allowed</li>
-                    <li> Mobile tickets are accepted</li>
-                  </ul>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="bg-primary-50 px-6 py-4 border-t border-primary-200">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleDownloadTicket}
-                className="btn-primary flex items-center justify-center space-x-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Tickets</span>
-              </button>
+          {/* Right Column - Payment Summary */}
+          <div className="lg:col-span-4">
+            <div className="lg:sticky lg:top-4">
+              <div className="pb-4 border-b border-surface-border/50 mb-4">
+                <h3 className="text-xs uppercase tracking-wider text-text-dim mb-4">Payment Summary</h3>
 
-              <button
-                onClick={handleShareBooking}
-                className="btn-secondary flex items-center justify-center space-x-2"
-              >
-                <Share2 className="w-4 h-4" />
-                <span>Share Booking</span>
-              </button>
+                <div className="space-y-2 text-sm mb-4">
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Tickets ({booking.seats.length})</span>
+                    <span className="text-text">{THEATER_CONFIG.currencySymbol}{(booking.total || booking.totalAmount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Fee</span>
+                    <span className="text-text">{THEATER_CONFIG.currencySymbol}0.00</span>
+                  </div>
+                </div>
 
-              <button
-                onClick={handleBookAnother}
-                className="btn-secondary flex items-center justify-center space-x-2 sm:ml-auto"
-              >
-                <Home className="w-4 h-4" />
-                <span>Book Another Movie</span>
-              </button>
+                <div className="flex justify-between items-baseline pt-3 border-t border-surface-border/50">
+                  <span className="text-text font-semibold">Total Paid</span>
+                  <span className="text-text text-2xl font-semibold">
+                    {THEATER_CONFIG.currencySymbol}{(booking.total || booking.totalAmount || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-xs text-text-dim mb-4">
+                <p className="mb-1">Transaction ID</p>
+                <p className="font-mono text-text text-sm">{booking.transactionId}</p>
+              </div>
+
+              <div className="space-y-2">
+                <button onClick={handleDownloadTicket} className="w-full btn-primary">
+                  Download Ticket
+                </button>
+                <button onClick={handleBookAnother} className="w-full btn-secondary">
+                  Book Another
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Additional Info */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-primary-600">
-            A confirmation email has been sent to {booking.customerInfo.email}
-          </p>
-          <p className="text-sm text-primary-500 mt-2">
-            For any queries, please contact customer support or visit the cinema
-            counter.
-          </p>
         </div>
       </div>
     </div>

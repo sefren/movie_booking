@@ -143,7 +143,7 @@ const validateCardholderName = (name) => {
     return { valid: false, message: "Name must be at least 2 characters" };
   }
 
-  if (!/^[a-zA-Z\s\-\.]+$/.test(trimmedName)) {
+  if (!/^[a-zA-Z\s\-.]+$/.test(trimmedName)) {
     return {
       valid: false,
       message: "Name can only contain letters, spaces, hyphens, and periods",
@@ -384,68 +384,64 @@ const Payment = () => {
   );
 
   return (
-    <div className="min-h-screen bg-primary-50">
+    <div className="min-h-screen bg-base-900">
       {/* Header */}
-      <div className="bg-white border-b border-primary-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="relative border-b border-surface-border bg-gradient-to-b from-surface/60 to-base-900/60 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <button
             onClick={handleBack}
-            className="flex items-center space-x-2 text-primary-600 hover:text-primary-900 transition-colors mb-4"
+            className="inline-flex items-center gap-2 rounded-lg bg-surface-light border border-surface-border px-4 py-2.5 text-sm font-medium text-text hover:bg-surface-lighter hover:border-cinema-red/50 hover:text-cinema-red transition-all min-h-[44px] mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Booking</span>
           </button>
 
-          <div className="flex items-center space-x-3">
-            <Lock className="w-5 h-5 text-green-600" />
-            <h1 className="text-2xl font-semibold text-primary-900">
-              Secure Payment
-            </h1>
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-cinema-red/10 border-2 border-cinema-red/30 flex items-center justify-center">
+              <Lock className="w-6 h-6 text-cinema-red" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-text">Complete Payment</h1>
+              <p className="text-sm text-text-muted">Secure payment processing</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Payment Form */}
-          <div className="space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Payment Status */}
             {paymentStatus === PAYMENT_STATUS.PROCESSING && (
-              <div className="bg-blue-50 border border-blue-200 p-4 flex items-center space-x-3">
-                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <div className="card bg-cinema-blue/10 border-2 border-cinema-blue/30 flex items-start gap-3">
+                <Loader2 className="w-5 h-5 animate-spin text-cinema-blue flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-medium text-blue-900">
-                    Processing Payment
-                  </h3>
-                  <p className="text-sm text-blue-700">
-                    Please wait while we process your payment...
-                  </p>
+                  <h3 className="font-semibold text-text mb-1">Processing Payment</h3>
+                  <p className="text-sm text-text-muted">Please wait while we process your payment...</p>
                 </div>
               </div>
             )}
 
             {paymentStatus === PAYMENT_STATUS.SUCCESS && (
-              <div className="bg-green-50 border border-green-200 p-4 flex items-center space-x-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="card bg-success/10 border-2 border-success/30 flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-medium text-green-900">
-                    Payment Successful!
-                  </h3>
-                  <p className="text-sm text-green-700">
-                    Redirecting to confirmation page...
-                  </p>
+                  <h3 className="font-semibold text-success mb-1">Payment Successful!</h3>
+                  <p className="text-sm text-success/80">Redirecting to confirmation page...</p>
                 </div>
               </div>
             )}
 
             {paymentStatus === PAYMENT_STATUS.FAILED && (
-              <div className="bg-red-50 border border-red-200 p-4 flex items-center space-x-3">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <div>
-                  <h3 className="font-medium text-red-900">Payment Failed</h3>
-                  <p className="text-sm text-red-700">
-                    Your payment could not be processed. Please try again.
-                  </p>
+              <div className="card bg-danger/10 border-2 border-danger/30 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-danger mb-1">Payment Failed</h3>
+                  <p className="text-sm text-danger/80 mb-3">Your payment could not be processed. Please try again.</p>
+                  <button onClick={handleRetry} className="btn-secondary text-sm">
+                    Try Again
+                  </button>
                 </div>
               </div>
             )}
@@ -453,41 +449,38 @@ const Payment = () => {
             {/* Payment Method Selection */}
             {paymentStatus === PAYMENT_STATUS.PENDING && (
               <>
-                <div className="bg-white border border-primary-200 p-6">
-                  <h2 className="text-lg font-semibold text-primary-900 mb-4">
+                <div className="card">
+                  <h2 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-cinema-red" />
                     Payment Method
                   </h2>
 
                   <div className="space-y-3">
-                    <label className="flex items-center space-x-3 cursor-pointer">
+                    <label className="flex items-center gap-3 p-4 rounded-lg border-2 border-cinema-red bg-cinema-red/5 cursor-pointer transition-all">
                       <input
                         type="radio"
                         name="paymentMethod"
                         value="card"
                         checked={paymentMethod === "card"}
                         onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="text-primary-900 focus:ring-primary-900"
+                        className="text-cinema-red focus:ring-cinema-red w-5 h-5"
                       />
-                      <CreditCard className="w-5 h-5 text-primary-600" />
-                      <span className="font-medium text-primary-900">
-                        Credit/Debit Card
-                      </span>
+                      <CreditCard className="w-5 h-5 text-cinema-red" />
+                      <span className="font-semibold text-text">Credit/Debit Card</span>
                     </label>
                   </div>
                 </div>
 
                 {/* Card Payment Form */}
                 {paymentMethod === "card" && (
-                  <div className="bg-white border border-primary-200 p-6">
-                    <h3 className="text-lg font-semibold text-primary-900 mb-4">
-                      Card Details
-                    </h3>
+                  <div className="card">
+                    <h3 className="text-xl font-bold text-text mb-6">Card Details</h3>
 
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       <div>
                         <label
                           htmlFor="cardNumber"
-                          className="block text-sm font-medium text-primary-700 mb-2"
+                          className="block text-sm font-semibold text-text mb-2"
                         >
                           Card Number
                         </label>
@@ -610,13 +603,14 @@ const Payment = () => {
           </div>
 
           {/* Booking Summary */}
-          <div className="bg-white border border-primary-200 p-6 h-fit sticky top-4">
-            <h3 className="text-lg font-semibold text-primary-900 mb-4">
+          <div className="card-glass lg:sticky lg:top-4 shadow-xl">
+            <h3 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-cinema-red" />
               Order Summary
             </h3>
 
             {/* Movie Info */}
-            <div className="flex space-x-4 mb-6">
+            <div className="flex gap-4 mb-6 pb-6 border-b border-surface-border">
               {posterUrl ? (
                 <img
                   src={posterUrl}
@@ -625,25 +619,25 @@ const Payment = () => {
                     bookingData.movieId?.title ||
                     "Movie"
                   }
-                  className="w-16 h-24 object-cover border border-primary-200"
+                  className="w-20 h-30 object-cover rounded-lg border-2 border-cinema-red/20 shadow-lg"
                   onError={(e) => {
                     e.target.src = "/placeholder-movie-poster.jpg";
                   }}
                 />
               ) : (
-                <div className="w-16 h-24 bg-primary-100 flex items-center justify-center border border-primary-200">
-                  <Film className="h-6 w-6 text-primary-400" />
+                <div className="w-20 h-30 bg-surface-light rounded-lg border border-surface-border flex items-center justify-center">
+                  <Film className="h-6 w-6 text-text-dim" />
                 </div>
               )}
               <div className="flex-1">
-                <h4 className="font-medium text-primary-900 mb-2">
+                <h4 className="font-semibold text-text mb-3 line-clamp-2">
                   {bookingData.movie?.title ||
                     bookingData.movieId?.title ||
                     "Movie"}
                 </h4>
-                <div className="space-y-1 text-sm text-primary-600">
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-3 h-3" />
+                <div className="space-y-2 text-sm text-text-muted">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-cinema-blue" />
                     <span>
                       {new Date(bookingData.date).toLocaleDateString("en-US", {
                         weekday: "short",
@@ -652,16 +646,15 @@ const Payment = () => {
                       })}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-3 h-3" />
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-cinema-blue" />
                     <span>
                       {bookingData.showtime?.time || bookingData.showtime}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Users className="w-3 h-3" />
-                    <span>
-                      Seats:{" "}
+                  <div className="flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5 text-cinema-blue" />
+                    <span className="line-clamp-1">
                       {Array.isArray(bookingData.seats)
                         ? bookingData.seats
                             .map((s) => (typeof s === "string" ? s : s.seatId))
@@ -674,12 +667,12 @@ const Payment = () => {
             </div>
 
             {/* Price Breakdown */}
-            <div className="space-y-3 text-sm border-t border-primary-200 pt-4">
+            <div className="space-y-3 text-sm mb-6">
               <div className="flex justify-between">
-                <span className="text-primary-600">
+                <span className="text-text-muted font-medium">
                   Tickets ({bookingData.seats.length})
                 </span>
-                <span className="text-primary-900">
+                <span className="text-text font-medium">
                   {THEATER_CONFIG.currencySymbol}
                   {(bookingData.total || bookingData.totalAmount || 0).toFixed(
                     2,
@@ -687,14 +680,15 @@ const Payment = () => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-primary-600">Booking Fee</span>
-                <span className="text-primary-900">
+                <span className="text-text-muted font-medium">Booking Fee</span>
+                <span className="text-text font-medium">
                   {THEATER_CONFIG.currencySymbol}0.00
                 </span>
               </div>
-              <div className="flex justify-between text-lg font-semibold border-t border-primary-200 pt-3">
-                <span className="text-primary-900">Total</span>
-                <span className="text-primary-900">
+              <div className="divider my-4"></div>
+              <div className="flex justify-between items-center p-4 rounded-lg bg-gradient-to-r from-cinema-red/10 to-cinema-gold/10 border border-cinema-red/20">
+                <span className="text-text font-bold text-lg">Total</span>
+                <span className="text-cinema-gold font-bold text-2xl">
                   {THEATER_CONFIG.currencySymbol}
                   {(bookingData.total || bookingData.totalAmount || 0).toFixed(
                     2,
@@ -704,21 +698,21 @@ const Payment = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-6 space-y-3">
+            <div className="space-y-3">
               {paymentStatus === PAYMENT_STATUS.PENDING && (
                 <button
                   onClick={processPayment}
                   disabled={isProcessing}
-                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 py-4 text-base"
                 >
                   {isProcessing ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       <span>Processing...</span>
                     </>
                   ) : (
                     <>
-                      <Lock className="w-4 h-4" />
+                      <Lock className="w-5 h-5" />
                       <span>
                         Pay {THEATER_CONFIG.currencySymbol}
                         {(
@@ -733,15 +727,14 @@ const Payment = () => {
               )}
 
               {paymentStatus === PAYMENT_STATUS.FAILED && (
-                <button onClick={handleRetry} className="w-full btn-primary">
+                <button onClick={handleRetry} className="w-full btn-primary py-4 text-base">
                   Try Again
                 </button>
               )}
             </div>
 
-            <p className="text-xs text-primary-500 mt-4 text-center">
-              By clicking "Pay", you agree to our terms of service and privacy
-              policy.
+            <p className="text-xs text-text-dim mt-4 text-center leading-relaxed">
+              🔒 Secure payment. By clicking "Pay", you agree to our terms.
             </p>
           </div>
         </div>

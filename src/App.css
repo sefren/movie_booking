@@ -1,15 +1,28 @@
 #root {
-  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
+}
+
+/* Remove default padding from mobile - let components handle their own spacing */
+@media (max-width: 640px) {
+  #root {
+    padding: 0;
+  }
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
+  height: 4em;
+  padding: 1em;
   will-change: filter;
   transition: filter 300ms;
+}
+
+@media (min-width: 768px) {
+  .logo {
+    height: 6em;
+    padding: 1.5em;
+  }
 }
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);

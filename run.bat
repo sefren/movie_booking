@@ -55,7 +55,7 @@ echo.
 echo [*] Starting servers...
 start "Backend - Port 5000" cmd /k "title SEFREN Backend && cd backend && npm run dev"
 timeout /t 2 >nul
-start "Frontend - Port 5173" cmd /k "title SEFREN Frontend && npm run dev"
+start "Frontend - Port 5173" cmd /k "title SEFREN Frontend && npm run dev -- --host"
 timeout /t 2 >nul
 
 echo.
