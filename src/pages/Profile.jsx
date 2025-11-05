@@ -20,15 +20,16 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserBookings, updateUserProfile } from "../utils/authApi";
+import { fetchAllBookings, updateProfile } from "../utils/backendApi";
 import { getImageUrl } from "../utils/api";
 
 const Profile = () => {
-  const { user, isAuthenticated, updateUser } = useAuth();
+  const { user, isAuthenticated, updateUser: updateAuthUser } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user?.name || "",
@@ -46,27 +47,48 @@ const Profile = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch bookings function (can be called multiple times)
+  const fetchBookings = async () => {
+    if (!user?.email) return;
+
+    try {
+      setLoading(true);
+      // Fetch bookings for the logged-in user's email
+      const data = await fetchAllBookings({ email: user.email });
+      console.log(`✅ Loaded ${data.length} booking(s) for ${user.email}`);
+      setBookings(data || []);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("❌ Failed to fetch bookings:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch bookings on mount only
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate("/");
       return;
     }
 
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        const data = await getUserBookings();
-        setBookings(data || []);
-      } catch (err) {
-        console.error("Failed to fetch bookings:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (user?.email) {
+      fetchBookings();
+    }
+  }, [isAuthenticated, navigate, user?.email]);
 
-    fetchBookings();
-  }, [isAuthenticated, navigate]);
+  // Auto-refresh every 30 seconds (instead of on every focus)
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing bookings (30s interval)...');
+      fetchBookings();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.email]);
 
   const handleEditChange = (e) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
@@ -75,8 +97,8 @@ const Profile = () => {
   const handleUpdateProfile = async () => {
     setUpdateLoading(true);
     try {
-      const updatedUser = await updateUserProfile(editForm);
-      updateUser(updatedUser);
+      const updatedUser = await updateProfile(editForm);
+      updateAuthUser(updatedUser);
       setIsEditing(false);
     } catch (err) {
       alert(err.message || "Failed to update profile");
@@ -258,9 +280,26 @@ const Profile = () => {
 
         {/* Bookings Section */}
         <div className="bg-white border border-primary-200 p-6">
-          <h2 className="text-2xl font-bold text-primary-900 mb-6">
-            My Bookings
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-primary-900">
+                My Bookings
+              </h2>
+              {lastUpdated && (
+                <p className="text-xs text-primary-500 mt-1">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={fetchBookings}
+              disabled={loading}
+              className="flex items-center space-x-2 px-4 py-2 bg-primary-900 text-white hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm rounded"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
 
           {error ? (
             <div className="text-center py-12">
@@ -291,6 +330,7 @@ const Profile = () => {
                     ? getTimeRemaining(booking.lockedUntil)
                     : null;
                 const isExpired = timeRemaining === "Expired";
+
 
                 return (
                   <div

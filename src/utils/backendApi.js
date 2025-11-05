@@ -62,7 +62,10 @@ export const fetchMoviesFromBackend = async (params = {}) => {
     const endpoint = queryString ? `/movies?${queryString}` : "/movies";
 
     const response = await apiRequest(endpoint);
-    return response.data;
+
+    // Backend returns { success: true, data: { movies: [...], pagination: {...} } }
+    // Return just the movies array
+    return response.data?.movies || [];
   } catch (error) {
     console.error("Failed to fetch movies from backend:", error);
     throw error;
@@ -97,11 +100,257 @@ export const fetchMovieShowtimes = async (movieId, date = null) => {
       : `/movies/${movieId}/showtimes`;
 
     const response = await apiRequest(endpoint);
-    return response.data;
+
+    // Backend returns { success: true, data: { showtimes: [...], groupedByDate: {...}, count: N } }
+    // Return the data object which contains showtimes array
+    return response.data || { showtimes: [], groupedByDate: {}, count: 0 };
   } catch (error) {
     console.error("Failed to fetch movie showtimes:", error);
     throw error;
   }
+};
+
+/**
+ * Get available dates with showtimes for a movie
+ * @param {string} movieId - Movie ID
+ * @returns {Promise<Array>} Array of dates that have showtimes
+ */
+export const fetchAvailableDates = async (movieId) => {
+  try {
+    // Fetch all showtimes without date filter
+    const response = await apiRequest(`/movies/${movieId}/showtimes`);
+    const data = response.data || { showtimes: [], groupedByDate: {}, count: 0 };
+
+    // If no showtimes, return empty array
+    if (!data.showtimes || data.showtimes.length === 0 || data.count === 0) {
+      console.log('⚠️ No showtimes available for this movie');
+      return [];
+    }
+
+    // Extract dates from showtimes array (these are actual showtimes that exist)
+    const uniqueDates = [...new Set(
+      data.showtimes.map(st => new Date(st.date).toISOString().split('T')[0])
+    )].sort();
+
+    console.log('📅 Dates with confirmed showtimes:', uniqueDates);
+
+    // Verify each date by actually checking if it has showtimes
+    const verifiedDates = [];
+    for (const dateStr of uniqueDates) {
+      try {
+        const dateShowtimes = await fetchMovieShowtimes(movieId, dateStr);
+        const count = dateShowtimes.showtimes?.length || 0;
+
+        if (count > 0) {
+          verifiedDates.push(dateStr);
+          console.log(`✅ ${dateStr}: ${count} showtimes`);
+        } else {
+          console.log(`❌ ${dateStr}: 0 showtimes (filtered out)`);
+        }
+      } catch (error) {
+        console.error(`Error verifying ${dateStr}:`, error);
+      }
+    }
+
+    console.log('📅 Final verified dates:', verifiedDates);
+    return verifiedDates;
+  } catch (error) {
+    console.error("Failed to fetch available dates:", error);
+    return [];
+  }
+};
+
+// ============================================================================
+// AUTH APIs
+// ============================================================================
+
+/**
+ * Register new user
+ * @param {Object} userData - User registration data (name, email, password, phone)
+ * @returns {Promise<Object>} User data and token
+ */
+export const register = async (userData) => {
+  try {
+    const response = await apiRequest("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+
+    // Store token in localStorage
+    if (response.data?.token) {
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Registration failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Login user
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<Object>} User data and token
+ */
+export const login = async (email, password) => {
+  try {
+    const response = await apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+
+    // Store token in localStorage
+    if (response.data?.token) {
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Login failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Logout user
+ */
+export const logout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+};
+
+/**
+ * Get current user profile
+ * @returns {Promise<Object>} User profile
+ */
+export const getProfile = async () => {
+  try {
+    const response = await apiRequest("/auth/profile");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch profile:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update user profile
+ * @param {Object} userData - Updated user data (name, phone)
+ * @returns {Promise<Object>} Updated user data
+ */
+export const updateProfile = async (userData) => {
+  try {
+    const response = await apiRequest("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(userData),
+    });
+
+    // Update stored user data
+    if (response.data) {
+      localStorage.setItem("user", JSON.stringify(response.data));
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update profile:", error);
+    throw error;
+  }
+};
+
+/**
+ * Change password
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Promise<Object>} Success message
+ */
+export const changePassword = async (currentPassword, newPassword) => {
+  try {
+    const response = await apiRequest("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    return response;
+  } catch (error) {
+    console.error("Failed to change password:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get user favorites
+ * @returns {Promise<Array>} Array of favorite movies
+ */
+export const getFavorites = async () => {
+  try {
+    const response = await apiRequest("/auth/favorites");
+    return response.data || [];
+  } catch (error) {
+    console.error("Failed to fetch favorites:", error);
+    throw error;
+  }
+};
+
+/**
+ * Add movie to favorites
+ * @param {string} movieId - Movie ID
+ * @returns {Promise<Object>} Updated favorites
+ */
+export const addFavorite = async (movieId) => {
+  try {
+    const response = await apiRequest(`/auth/favorites/${movieId}`, {
+      method: "POST",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to add favorite:", error);
+    throw error;
+  }
+};
+
+/**
+ * Remove movie from favorites
+ * @param {string} movieId - Movie ID
+ * @returns {Promise<Object>} Updated favorites
+ */
+export const removeFavorite = async (movieId) => {
+  try {
+    const response = await apiRequest(`/auth/favorites/${movieId}`, {
+      method: "DELETE",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to remove favorite:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if user is authenticated
+ * @returns {boolean} True if user has valid token
+ */
+export const isAuthenticated = () => {
+  const token = localStorage.getItem("token");
+  return !!token;
+};
+
+/**
+ * Get current user from localStorage
+ * @returns {Object|null} User object or null
+ */
+export const getCurrentUser = () => {
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    try {
+      return JSON.parse(userStr);
+    } catch (error) {
+      return null;
+    }
+  }
+  return null;
 };
 
 // ============================================================================
@@ -112,18 +361,22 @@ export const fetchMovieShowtimes = async (movieId, date = null) => {
  * Get occupied seats for a specific showtime
  * @param {string} movieId - Movie ID
  * @param {string} date - Date (YYYY-MM-DD)
- * @param {string} showtimeId - Optional showtime ID
+ * @param {Object} showtime - Showtime object with id property
  * @returns {Promise<Array>} Array of occupied seat IDs
  */
-export const fetchOccupiedSeats = async (movieId, date, showtimeId = null) => {
+export const fetchOccupiedSeats = async (movieId, date, showtime = null) => {
   try {
-    const params = new URLSearchParams({ movieId, date });
-    if (showtimeId) params.append("showtimeId", showtimeId);
+    if (!showtime || !showtime.id) {
+      console.warn('No showtime ID provided for occupied seats');
+      return [];
+    }
+
+    const params = new URLSearchParams({ showtimeId: showtime.id });
 
     const response = await apiRequest(
       `/bookings/occupied-seats?${params.toString()}`,
     );
-    return response.data;
+    return response.data || [];
   } catch (error) {
     console.error("Failed to fetch occupied seats:", error);
     return []; // Return empty array on error
@@ -215,8 +468,8 @@ export const fetchAllBookings = async (params = {}) => {
 
     const queryString = queryParams.toString();
     const endpoint = queryString
-      ? `/bookings/all?${queryString}`
-      : "/bookings/all";
+      ? `/bookings/admin/all?${queryString}`
+      : "/bookings/admin/all";
 
     const response = await apiRequest(endpoint);
     return response.data;
@@ -297,21 +550,48 @@ export const formatBackendMovie = (movie) => {
     .map((genreName) => GENRE_NAME_TO_ID[genreName])
     .filter(Boolean);
 
+  // Extract YouTube video ID from trailerUrl if it exists
+  let youtubeKey = null;
+  if (movie.trailerUrl) {
+    // Handle both embed URLs and watch URLs
+    const embedMatch = movie.trailerUrl.match(/embed\/([^"&?\/\s]{11})/);
+    const watchMatch = movie.trailerUrl.match(/[?&]v=([^"&?\/\s]{11})/);
+    const shortMatch = movie.trailerUrl.match(/youtu\.be\/([^"&?\/\s]{11})/);
+
+    if (embedMatch && embedMatch[1]) {
+      youtubeKey = embedMatch[1];
+    } else if (watchMatch && watchMatch[1]) {
+      youtubeKey = watchMatch[1];
+    } else if (shortMatch && shortMatch[1]) {
+      youtubeKey = shortMatch[1];
+    }
+  }
+
   return {
     id: movie._id,
     title: movie.title,
     overview: movie.description,
-    posterPath: movie.posterPath,
-    backdropPath: movie.backdrop_path,
+    posterPath: movie.posterUrl,
+    backdropPath: movie.backdropUrl,
     releaseDate: movie.releaseDate,
     rating: movie.rating,
+    vote_average: movie.rating,
     voteCount: 0,
+    vote_count: 0,
     genres: movie.genres || [],
     genreIds: genreIds,
     duration: movie.duration,
-    language: movie.language,
-    status: movie.status,
+    runtime: movie.duration,
+    language: movie.originalLanguage || movie.language,
+    original_language: movie.originalLanguage || movie.language,
+    status: movie.status === 'now-showing' ? 'now_playing' : movie.status === 'coming-soon' ? 'upcoming' : movie.status,
+    trailerUrl: movie.trailerUrl,
+    youtubeKey: youtubeKey,
+    cast: movie.cast || [],
+    director: movie.director,
+    crew: movie.director ? [{ name: movie.director, job: 'Director' }] : [],
     showtimes: movie.showtimes || [],
+    ageRating: movie.ageRating,
   };
 };
 
@@ -325,12 +605,92 @@ export const formatShowtime = (showtime) => {
     id: showtime._id,
     time: showtime.time,
     date: new Date(showtime.date),
-    screenId: showtime.screenId,
+    screenId: showtime.screenId?._id || showtime.screenId,
     screenName: showtime.screenId?.name || "Unknown",
     screenType: showtime.screenId?.screenType || "Standard",
+    priceMultiplier: showtime.screenId?.priceMultiplier || 1.0,
+    totalSeats: showtime.screenId?.totalSeats || 0,
     availableSeats: showtime.availableSeats,
     price: showtime.price,
+    // Add formatted display strings
+    displayTime: showtime.time,
+    displayDate: new Date(showtime.date).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    }),
+    displayScreen: `${showtime.screenId?.name || 'Screen'} (${showtime.screenId?.screenType || 'Standard'})`,
+    displayPrice: `$${showtime.price?.toFixed(2) || '0.00'}`,
   };
+};
+
+/**
+ * Get similar movies based on genres
+ * @param {string} movieId - Current movie ID
+ * @param {Array<string>} genres - Array of genre names
+ * @param {number} limit - Number of similar movies to fetch
+ * @returns {Promise<Array>} Array of similar movies
+ */
+export const fetchSimilarMoviesByGenre = async (movieId, genres, limit = 12) => {
+  try {
+    if (!genres || genres.length === 0) {
+      return [];
+    }
+
+    // Fetch movies with matching genres
+    const allMovies = await fetchMoviesFromBackend({ limit: 100 });
+
+    // Filter out current movie and find movies with matching genres
+    const similarMovies = allMovies
+      .filter(movie => movie._id !== movieId)
+      .map(movie => {
+        // Count how many genres match
+        const matchingGenres = movie.genres?.filter(g => genres.includes(g)).length || 0;
+        return { ...movie, matchScore: matchingGenres };
+      })
+      .filter(movie => movie.matchScore > 0)
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, limit)
+      .map(formatBackendMovie);
+
+    return similarMovies;
+  } catch (error) {
+    console.error('Failed to fetch similar movies:', error);
+    return [];
+  }
+};
+
+/**
+ * Group similar movies by genre
+ * @param {string} movieId - Current movie ID
+ * @param {Array<string>} genres - Array of genre names (top 3)
+ * @returns {Promise<Object>} Object with genres as keys and movie arrays as values
+ */
+export const fetchSimilarMoviesByGenreGroups = async (movieId, genres) => {
+  try {
+    const topGenres = genres.slice(0, 3); // Take top 3 genres
+    const allMovies = await fetchMoviesFromBackend({ limit: 100 });
+    const genreGroups = {};
+
+    for (const genre of topGenres) {
+      const moviesInGenre = allMovies
+        .filter(movie =>
+          movie._id !== movieId &&
+          movie.genres?.includes(genre)
+        )
+        .slice(0, 6)
+        .map(formatBackendMovie);
+
+      if (moviesInGenre.length > 0) {
+        genreGroups[genre] = moviesInGenre;
+      }
+    }
+
+    return genreGroups;
+  } catch (error) {
+    console.error('Failed to fetch similar movies by genre groups:', error);
+    return {};
+  }
 };
 
 /**
@@ -348,18 +708,38 @@ export const checkBackendHealth = async () => {
 };
 
 export default {
+  // Auth
+  register,
+  login,
+  logout,
+  getProfile,
+  updateProfile,
+  changePassword,
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  isAuthenticated,
+  getCurrentUser,
+  // Movies
   fetchMoviesFromBackend,
   fetchMovieById,
   fetchMovieShowtimes,
+  fetchAvailableDates,
+  // Bookings
   fetchOccupiedSeats,
   createBooking,
   confirmBooking,
   cancelBooking,
   fetchBookingById,
   fetchAllBookings,
+  // Screens
   fetchScreens,
   fetchScreenById,
+  // Formatting
   formatBackendMovie,
   formatShowtime,
+  fetchSimilarMoviesByGenre,
+  fetchSimilarMoviesByGenreGroups,
+  // Health
   checkBackendHealth,
 };

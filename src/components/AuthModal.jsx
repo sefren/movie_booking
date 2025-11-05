@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { X, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { loginUser, registerUser } from "../utils/authApi";
 
 const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
   const [mode, setMode] = useState(initialMode);
@@ -39,11 +38,12 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
     setError("");
 
     try {
-      const data = await loginUser(loginForm);
-      login(data.user, data.token);
+      await login(loginForm.email, loginForm.password);
       onClose();
+      // Reset form
+      setLoginForm({ email: "", password: "" });
     } catch (err) {
-      setError(err.message || "Login failed. Please try again.");
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -61,9 +61,10 @@ const AuthModal = ({ isOpen, onClose, initialMode = "login" }) => {
     }
 
     try {
-      const data = await registerUser(registerForm);
-      register(data.user, data.token);
+      await register(registerForm);
       onClose();
+      // Reset form
+      setRegisterForm({ name: "", email: "", password: "", phone: "" });
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {

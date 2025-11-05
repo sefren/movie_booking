@@ -87,8 +87,14 @@ const Home = () => {
         let formattedMovies;
 
         if (useBackend) {
+          // Map frontend tab names to backend status values
+          const statusMap = {
+            'now_playing': 'now-showing',
+            'upcoming': 'coming-soon'
+          };
+
           const params = {
-            status: activeTab,
+            status: statusMap[activeTab] || activeTab,
             search: debouncedSearchQuery.trim() || undefined,
             page: activeTab === "upcoming" ? upcomingPage : 1,
             limit: 20,

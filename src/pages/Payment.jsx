@@ -294,18 +294,22 @@ const Payment = () => {
         const transactionId = `TXN${Date.now()}${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
         // If booking has backend ID, confirm with backend
-        if (bookingData.bookingId && bookingData.bookingId.startsWith("BK")) {
+        if (bookingData.bookingId) {
           try {
             console.log(
-              "Confirming booking with backend:",
+              "💳 Confirming booking with backend:",
               bookingData.bookingId,
+              "Transaction:",
+              transactionId
             );
-            await confirmBooking(bookingData.bookingId, transactionId);
-            console.log("✅ Booking confirmed with backend");
+            const confirmedBooking = await confirmBooking(bookingData.bookingId, transactionId);
+            console.log("✅ Booking confirmed with backend:", confirmedBooking);
           } catch (error) {
-            console.error("Failed to confirm booking with backend:", error);
+            console.error("❌ Failed to confirm booking with backend:", error);
             // Continue anyway for demo purposes
           }
+        } else {
+          console.warn("⚠️  No bookingId found, skipping backend confirmation");
         }
 
         setPaymentStatus(PAYMENT_STATUS.SUCCESS);
