@@ -34,8 +34,136 @@ const Confirmation = () => {
   }, [location.state, navigate]);
 
   const handleDownloadTicket = () => {
-    // Simulate ticket download
-    alert("Ticket download feature will be implemented with PDF generation");
+    // Create a canvas element to generate ticket image
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 1000;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#18181b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Header
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(0, 0, canvas.width, 120);
+
+    // Studio 9 Logo/Text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('STUDIO 9', canvas.width / 2, 70);
+
+    // Ticket Title
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px Arial';
+    ctx.fillText('MOVIE TICKET', canvas.width / 2, 180);
+
+    // Movie Title
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 28px Arial';
+    const movieTitle = booking.movie?.title || 'Movie';
+    ctx.fillText(movieTitle.toUpperCase(), canvas.width / 2, 240);
+
+    // Details section
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '20px Arial';
+    let yPos = 300;
+
+    // Date
+    ctx.fillText('DATE:', 80, yPos);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(new Date(booking.date || booking.showtime?.date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }), 220, yPos);
+
+    yPos += 50;
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '20px Arial';
+    ctx.fillText('TIME:', 80, yPos);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(booking.showtime?.time || '', 220, yPos);
+
+    yPos += 50;
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '20px Arial';
+    ctx.fillText('SEATS:', 80, yPos);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    const seats = Array.isArray(booking.seats)
+      ? booking.seats.map(s => typeof s === 'string' ? s : s.seatId).join(', ')
+      : '';
+    ctx.fillText(seats, 220, yPos);
+
+    yPos += 50;
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '20px Arial';
+    ctx.fillText('SCREEN:', 80, yPos);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(booking.screenName || 'Screen 1', 220, yPos);
+
+    yPos += 50;
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '20px Arial';
+    ctx.fillText('BOOKING ID:', 80, yPos);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText(booking.bookingId || booking._id || '', 220, yPos);
+
+    // Price section
+    yPos += 80;
+    ctx.strokeStyle = '#3f3f46';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(50, yPos);
+    ctx.lineTo(750, yPos);
+    ctx.stroke();
+
+    yPos += 50;
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '24px Arial';
+    ctx.fillText('TOTAL AMOUNT:', 80, yPos);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`₹${(booking.total || booking.totalAmount || 0).toFixed(0)}`, 720, yPos);
+
+    // Footer
+    yPos += 80;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#71717a';
+    ctx.font = '16px Arial';
+    ctx.fillText('Please arrive 15 minutes before showtime', canvas.width / 2, yPos);
+    yPos += 30;
+    ctx.fillText('Present this ticket at the entrance', canvas.width / 2, yPos);
+
+    // QR Code placeholder (you can integrate a real QR code library)
+    yPos += 60;
+    ctx.strokeStyle = '#71717a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(canvas.width / 2 - 100, yPos, 200, 200);
+    ctx.fillStyle = '#71717a';
+    ctx.font = '16px Arial';
+    ctx.fillText('QR CODE', canvas.width / 2, yPos + 110);
+
+    // Convert canvas to blob and download
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Studio9-Ticket-${booking.bookingId || Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
   };
 
   const handleShareBooking = () => {
