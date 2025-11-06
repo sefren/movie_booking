@@ -252,7 +252,7 @@ const Home = () => {
 
         if (loading || heroMovies.length === 0) {
             return (
-                <div className="relative h-[500px] md:h-[600px] lg:h-[700px] bg-surface overflow-hidden">
+                <div className="relative h-[500px] md:h-[600px] lg:h-[700px] bg-black overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
                             <Loader2 className="w-12 h-12 text-cinema-red animate-spin mx-auto mb-4" />
@@ -277,7 +277,7 @@ const Home = () => {
                 : "/placeholder-backdrop.jpg";
 
         return (
-            <div className="relative h-[500px] sm:h-[550px] md:h-[600px] lg:h-[700px] bg-surface overflow-hidden">
+            <div className="relative h-[500px] sm:h-[550px] md:h-[600px] lg:h-[700px] bg-black overflow-hidden">
                 {/* Background Image with Overlay */}
                 <div className="absolute inset-0">
                     <img

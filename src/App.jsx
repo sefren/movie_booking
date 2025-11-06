@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -10,6 +10,7 @@ import Payment from "./pages/Payment";
 import Confirmation from "./pages/Confirmation";
 import Profile from "./pages/Profile";
 import MovieDetails from "./pages/MovieDetail";
+import NotFound from "./pages/NotFound";
 
 function AppContent() {
     return (
@@ -48,19 +49,7 @@ function AppContent() {
                     <Route path="/payment" element={<Payment />} />
                     <Route path="/confirmation" element={<Confirmation />} />
                     <Route path="/profile" element={<Profile />} />
-                    <Route
-                        path="*"
-                        element={
-                            <div className="min-h-screen bg-black flex items-center justify-center">
-                                <div className="text-center">
-                                    <h1 className="text-4xl font-bold text-white mb-4">404</h1>
-                                    <p className="text-white/60 mb-6">Page not found</p>
-                                    {/* Use Link, not <a>, so routing + scroll control stay in-app */}
-                                    <Link to="/" className="btn-primary">Back to Home</Link>
-                                </div>
-                            </div>
-                        }
-                    />
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </main>
 

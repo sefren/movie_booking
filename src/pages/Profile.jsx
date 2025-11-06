@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  Clock,
-  MapPin,
   Ticket,
   Loader2,
   AlertCircle,
@@ -17,7 +11,6 @@ import {
   Download,
   Eye,
   RefreshCw,
-  XCircle,
   Heart,
   Star,
   Film,

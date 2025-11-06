@@ -7,36 +7,36 @@ const Footer = () => {
 
   const footerLinks = {
     company: [
-      { name: 'About Us', path: '/about' },
-      { name: 'Careers', path: '/careers' },
-      { name: 'Press', path: '/press' },
-      { name: 'Blog', path: '/blog' },
+      { name: 'About Us', path: '/about', disabled: true },
+      { name: 'Careers', path: '/careers', disabled: true },
+      { name: 'Press', path: '/press', disabled: true },
+      { name: 'Blog', path: '/blog', disabled: true },
     ],
     support: [
-      { name: 'Help Center', path: '/help' },
-      { name: 'Contact Us', path: '/contact' },
-      { name: 'FAQs', path: '/faq' },
-      { name: 'Feedback', path: '/feedback' },
+      { name: 'Help Center', path: '/help', disabled: true },
+      { name: 'Contact Us', path: '/contact', disabled: true },
+      { name: 'FAQs', path: '/faq', disabled: true },
+      { name: 'Feedback', path: '/feedback', disabled: true },
     ],
     legal: [
-      { name: 'Terms of Service', path: '/terms' },
-      { name: 'Privacy Policy', path: '/privacy' },
-      { name: 'Cookie Policy', path: '/cookies' },
-      { name: 'Disclaimer', path: '/disclaimer' },
+      { name: 'Terms of Service', path: '/terms', disabled: true },
+      { name: 'Privacy Policy', path: '/privacy', disabled: true },
+      { name: 'Cookie Policy', path: '/cookies', disabled: true },
+      { name: 'Disclaimer', path: '/disclaimer', disabled: true },
     ],
     experience: [
-      { name: 'Now Showing', path: '/?tab=now_playing' },
-      { name: 'Coming Soon', path: '/?tab=upcoming' },
-      { name: 'Gift Cards', path: '/gift-cards' },
-      { name: 'Promotions', path: '/promotions' },
+      { name: 'Now Showing', path: '/?tab=now_playing', disabled: false },
+      { name: 'Coming Soon', path: '/?tab=upcoming', disabled: false },
+      { name: 'Gift Cards', path: '/gift-cards', disabled: true },
+      { name: 'Promotions', path: '/promotions', disabled: true },
     ],
   };
 
   const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
-    { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-    { icon: Youtube, href: 'https://youtube.com', label: 'YouTube' },
+    { icon: Facebook, label: 'Facebook' },
+    { icon: Twitter, label: 'Twitter' },
+    { icon: Instagram, label: 'Instagram' },
+    { icon: Youtube, label: 'YouTube' },
   ];
 
   return (
@@ -44,17 +44,14 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         {/* Social Links */}
         <div className="flex items-center justify-center gap-4 mb-8">
-          {socialLinks.map(({ icon: IconComponent, href, label }) => (
-            <a
+          {socialLinks.map(({ icon: Icon, label }) => (
+            <span
               key={label}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors"
+              className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center cursor-default"
               aria-label={label}
             >
-              <IconComponent className="w-5 h-5 text-white/80" />
-            </a>
+              <Icon className="w-5 h-5 text-white/80" />
+            </span>
           ))}
         </div>
 
@@ -65,12 +62,18 @@ const Footer = () => {
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.path}
-                    className="text-white/60 hover:text-white/90 transition-colors text-sm"
-                  >
-                    {link.name}
-                  </Link>
+                  {link.disabled ? (
+                    <span className="text-white/60 text-sm cursor-default">
+                      {link.name}
+                    </span>
+                  ) : (
+                    <Link
+                      to={link.path}
+                      className="text-white/60 hover:text-white/90 transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -81,12 +84,18 @@ const Footer = () => {
             <ul className="space-y-2">
               {footerLinks.support.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.path}
-                    className="text-white/60 hover:text-white/90 transition-colors text-sm"
-                  >
-                    {link.name}
-                  </Link>
+                  {link.disabled ? (
+                    <span className="text-white/60 text-sm cursor-default">
+                      {link.name}
+                    </span>
+                  ) : (
+                    <Link
+                      to={link.path}
+                      className="text-white/60 hover:text-white/90 transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -97,12 +106,18 @@ const Footer = () => {
             <ul className="space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.path}
-                    className="text-white/60 hover:text-white/90 transition-colors text-sm"
-                  >
-                    {link.name}
-                  </Link>
+                  {link.disabled ? (
+                    <span className="text-white/60 text-sm cursor-default">
+                      {link.name}
+                    </span>
+                  ) : (
+                    <Link
+                      to={link.path}
+                      className="text-white/60 hover:text-white/90 transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -113,12 +128,18 @@ const Footer = () => {
             <ul className="space-y-2">
               {footerLinks.experience.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.path}
-                    className="text-white/60 hover:text-white/90 transition-colors text-sm"
-                  >
-                    {link.name}
-                  </Link>
+                  {link.disabled ? (
+                    <span className="text-white/60 text-sm cursor-default">
+                      {link.name}
+                    </span>
+                  ) : (
+                    <Link
+                      to={link.path}
+                      className="text-white/60 hover:text-white/90 transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -135,8 +156,12 @@ const Footer = () => {
                 type="email"
                 placeholder="Enter your email"
                 className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-white/40 text-sm focus:outline-none focus:border-white/40 transition-colors"
+                disabled
               />
-              <button className="px-4 py-2 bg-cinema-red hover:bg-cinema-red-dark text-white rounded text-sm font-medium transition-colors">
+              <button
+                className="px-4 py-2 bg-cinema-red/50 text-white rounded text-sm font-medium cursor-default"
+                disabled
+              >
                 <Mail className="w-4 h-4" />
               </button>
             </div>
@@ -153,7 +178,7 @@ const Footer = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="hover:text-white/60 transition-colors">English</button>
+            <span className="text-white/40 transition-colors">English</span>
             <span>•</span>
             <span>India</span>
           </div>
