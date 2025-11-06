@@ -148,6 +148,7 @@ const Header = ({ showSearch = true }) => {
                                             <button
                                                 onClick={clearSearch}
                                                 className="text-white/40 hover:text-white/80 flex-shrink-0 p-1 rounded hover:bg-white/10 transition-colors"
+                                                aria-label="Clear search"
                                             >
                                                 <X className="h-3.5 w-3.5" />
                                             </button>
@@ -220,7 +221,7 @@ const Header = ({ showSearch = true }) => {
                                     <button
                                         onClick={handleLogout}
                                         className="p-2 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-all"
-                                        title="Logout"
+                                        aria-label="Logout"
                                     >
                                         <LogOut className="w-4 h-4" />
                                     </button>

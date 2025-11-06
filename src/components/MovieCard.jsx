@@ -45,6 +45,8 @@ const MovieCard = memo(({ movie }) => {
                                 alt={movie.title || "Movie poster"}
                                 className="w-full h-full object-cover"
                                 placeholder="/placeholder-movie-poster.jpg"
+                                width="500"
+                                height="750"
                                 onError={() => {
                                     setImageError(true);
                                     setImageLoaded(true);

@@ -1,4 +1,4 @@
-﻿﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useImageLoading } from '../contexts/ImageLoadingContext';
 
 const LazyImage = ({
@@ -8,11 +8,12 @@ const LazyImage = ({
   placeholder = '/placeholder-movie-poster.jpg',
   onError,
   loading = 'lazy',
+  width,
+  height,
   ...props
 }) => {
   const [imageSrc, setImageSrc] = useState(placeholder);
   const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
   const imgRef = useRef(null);
   const { enableImageLoading } = useImageLoading();
 
@@ -24,7 +25,6 @@ const LazyImage = ({
 
     // Reset states when src changes
     setImageLoading(true);
-    setImageError(false);
 
     // Create a new image object for preloading
     const img = new Image();
@@ -35,7 +35,6 @@ const LazyImage = ({
     };
 
     img.onerror = () => {
-      setImageError(true);
       setImageLoading(false);
       if (onError) onError();
     };
@@ -64,7 +63,8 @@ const LazyImage = ({
       <img
         ref={imgRef}
         src={imageSrc}
-        alt={alt}
+        alt={alt}        width={width}
+        height={height}
         loading={loading}
         decoding="async"
         className={`${className} ${imageLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}

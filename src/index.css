@@ -50,11 +50,11 @@
     }
 
     .btn-secondary {
-        @apply bg-surface-light text-text border border-surface-border px-5 py-3 rounded font-medium text-sm transition-colors hover:bg-surface-lighter hover:border-text/20 focus:outline-none focus:ring-2 focus:ring-text/20 min-h-[44px];
+        @apply bg-surface-light text-white border border-surface-border px-5 py-3 rounded font-medium text-sm transition-colors hover:bg-surface-lighter hover:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/30 min-h-[44px];
     }
 
     .btn-ghost {
-        @apply bg-transparent text-text-muted px-5 py-3 rounded font-medium text-sm transition-colors hover:bg-surface-light hover:text-text focus:outline-none min-h-[44px];
+        @apply bg-transparent text-white/80 px-5 py-3 rounded font-medium text-sm transition-colors hover:bg-surface-light hover:text-white focus:outline-none min-h-[44px];
     }
 
     .btn-gold {
