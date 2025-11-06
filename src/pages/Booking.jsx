@@ -587,11 +587,23 @@ const Booking = () => {
                                     <span>{formErrors.seats}</span>
                                 </div>
                             )}
-                            <SeatGrid
-                                selectedSeats={selectedSeats}
-                                onSeatSelect={handleSeatSelect}
-                                occupiedSeats={occupiedSeats}
-                            />
+
+                            {!selectedDate || !selectedShowtime ? (
+                                <div className="text-center py-12 bg-surface/30 rounded border border-surface-border/50">
+                                    <Film className="w-12 h-12 mx-auto mb-4 text-text-dim" />
+                                    <p className="text-text-muted text-sm">
+                                        {!selectedDate
+                                            ? "Please select a date to view available seats"
+                                            : "Please select a showtime to view available seats"}
+                                    </p>
+                                </div>
+                            ) : (
+                                <SeatGrid
+                                    selectedSeats={selectedSeats}
+                                    onSeatSelect={handleSeatSelect}
+                                    occupiedSeats={occupiedSeats}
+                                />
+                            )}
                         </div>
                     </div>
 
