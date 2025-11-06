@@ -40,7 +40,21 @@ const Profile = () => {
   });
   const [updateLoading, setUpdateLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showAllFavorites, setShowAllFavorites] = useState(false);
+  const [showAllBookings, setShowAllBookings] = useState(false);
 
+  // Limits for display
+  const FAVORITES_LIMIT = 6;
+  const BOOKINGS_LIMIT = 3;
+
+  // Get displayed items based on show all state
+  const displayedFavorites = showAllFavorites
+    ? userFavorites
+    : userFavorites?.slice(0, FAVORITES_LIMIT);
+
+  const displayedBookings = showAllBookings
+    ? bookings
+    : bookings.slice(0, BOOKINGS_LIMIT);
 
   // Update timer every second for pending bookings
   useEffect(() => {
@@ -267,7 +281,17 @@ const Profile = () => {
 
         {/* Favorites Section */}
         <div className="mb-8">
-          <h2 className="text-xl sm:text-2xl font-semibold text-text mb-4">My Favorites</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-semibold text-text">My Favorites</h2>
+            {userFavorites && userFavorites.length > FAVORITES_LIMIT && (
+              <button
+                onClick={() => setShowAllFavorites(!showAllFavorites)}
+                className="btn-ghost text-sm flex items-center gap-2"
+              >
+                <span>{showAllFavorites ? 'Show Less' : `View All (${userFavorites.length})`}</span>
+              </button>
+            )}
+          </div>
 
           {!userFavorites ? (
             <div className="text-center py-8">
@@ -281,7 +305,7 @@ const Profile = () => {
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
-              {userFavorites.map((movie) => (
+              {displayedFavorites.map((movie) => (
                 <button
                   key={movie._id || movie.id}
                   onClick={() => navigate(`/movie/${movie._id || movie.id}`)}
@@ -336,10 +360,20 @@ const Profile = () => {
                 </p>
               )}
             </div>
-            <button onClick={fetchBookings} disabled={loading} className="btn-secondary flex items-center gap-2">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {bookings.length > BOOKINGS_LIMIT && (
+                <button
+                  onClick={() => setShowAllBookings(!showAllBookings)}
+                  className="btn-ghost text-sm flex items-center gap-2"
+                >
+                  <span>{showAllBookings ? 'Show Less' : `View All (${bookings.length})`}</span>
+                </button>
+              )}
+              <button onClick={fetchBookings} disabled={loading} className="btn-secondary flex items-center gap-2">
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           {error ? (
@@ -357,7 +391,7 @@ const Profile = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {bookings.map((booking) => {
+              {displayedBookings.map((booking) => {
                 const timeRemaining = booking.status === "pending" ? getTimeRemaining(booking.lockedUntil) : null;
                 const isExpired = timeRemaining === "Expired";
 
