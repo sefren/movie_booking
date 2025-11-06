@@ -289,7 +289,7 @@ export const getFavorites = async () => {
     const response = await apiRequest("/auth/favorites");
     return response.data || [];
   } catch (error) {
-    console.error("Failed to fetch favorites:", error);
+    console.error("Failed to fetch favorites:", error.message);
     throw error;
   }
 };
@@ -669,7 +669,8 @@ export const fetchSimilarMoviesByGenre = async (movieId, genres, limit = 12) => 
 export const fetchSimilarMoviesByGenreGroups = async (movieId, genres) => {
   try {
     const topGenres = genres.slice(0, 3); // Take top 3 genres
-    const allMovies = await fetchMoviesFromBackend({ limit: 100 });
+    const response = await fetchMoviesFromBackend({ limit: 100 });
+    const allMovies = response.movies || []; // Extract movies array from response
     const genreGroups = {};
 
     for (const genre of topGenres) {

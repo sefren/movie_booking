@@ -26,10 +26,12 @@ import {
 } from "../utils/backendApi";
 import { useMovieDetails } from "../hooks/useMovies";
 import { API_CONFIG } from "../utils/constants";
+import { useAuth } from "../contexts/AuthContext";
 
 const MovieDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isFavorite: checkIsFavorite, favorites, addToFavorites, removeFromFavorites } = useAuth();
 
   // Check if ID is MongoDB or TMDB
   const isMongoId = id && id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id);
@@ -54,6 +56,13 @@ const MovieDetails = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentPage, setCurrentPage] = useState({});
   const ITEMS_PER_PAGE = 12;
+
+  // Check if movie is in favorites
+  useEffect(() => {
+    if (id && checkIsFavorite) {
+      setIsFavorite(checkIsFavorite(id));
+    }
+  }, [favorites, id, checkIsFavorite]);
 
   // Fetch backend movie
   useEffect(() => {
@@ -234,6 +243,26 @@ const MovieDetails = () => {
     navigate(`/booking/${displayMovie.id}`);
   };
 
+  const toggleFavorite = async () => {
+    if (!user) {
+      alert("Please login to add favorites");
+      return;
+    }
+
+    try {
+      if (isFavorite) {
+        await removeFromFavorites(id);
+        setIsFavorite(false);
+      } else {
+        await addToFavorites(id);
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+      alert(error.message || "Failed to update favorites");
+    }
+  };
+
   const movieTitle = displayMovie?.title;
 
   const handleShare = () => {
@@ -335,7 +364,7 @@ const MovieDetails = () => {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsFavorite(!isFavorite)}
+              onClick={toggleFavorite}
               className="p-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors"
               aria-label="Toggle favorite"
             >

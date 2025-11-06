@@ -29,11 +29,19 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
+        // In production, allow all Netlify origins
+        if (origin && origin.includes('netlify.app')) {
+            return callback(null, true);
+        }
+
         if (allowedOrigins.indexOf(origin) === -1) {
+            console.log(`⚠️ CORS blocked origin: ${origin}`);
+            console.log(`✅ Allowed origins:`, allowedOrigins);
             const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
             return callback(new Error(msg), false);
         }
         return callback(null, true);
+
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

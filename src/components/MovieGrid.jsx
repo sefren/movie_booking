@@ -1,4 +1,4 @@
-﻿import React, { memo, useMemo } from "react";
+﻿﻿import React, { memo, useMemo } from "react";
 import MovieCard from "./MovieCard";
 import { Film, AlertCircle } from "lucide-react";
 import Pagination from "./Pagination";
@@ -112,14 +112,21 @@ const MovieGrid = memo(function MovieGrid({
             <div className="mb-10 relative">
                 <div
                     className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 transition-opacity`}
-                    style={{ opacity: pageLoading ? 0.7 : 1 }}
+                    style={{ opacity: pageLoading ? 0.5 : 1 }}
                 >
                     {movies.map((movie) => (
                         <MovieCard key={movie.id} movie={movie} />
                     ))}
                 </div>
                 {pageLoading && (
-                    <div className="absolute inset-0 pointer-events-none bg-base-900/20 backdrop-blur-[1px] rounded-lg" />
+                    <div className="absolute inset-0 pointer-events-none bg-base-900/40 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                        <div className="bg-surface/90 backdrop-blur-md px-6 py-4 rounded-lg border border-white/10 shadow-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className="w-5 h-5 border-2 border-cinema-red border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm font-medium text-white">Loading movies...</span>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
 

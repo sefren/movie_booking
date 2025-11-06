@@ -4,6 +4,7 @@ import * as backendApi from "../utils/backendApi";
 const AuthContext = createContext(null);
 
 // Custom hook
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -25,6 +26,8 @@ export const AuthProvider = ({ children }) => {
     if (storedUser && token) {
       setUser(storedUser);
       loadFavorites();
+    } else {
+      backendApi.logout();
     }
     setLoading(false);
   }, []);
@@ -33,9 +36,16 @@ export const AuthProvider = ({ children }) => {
   const loadFavorites = async () => {
     try {
       const userFavorites = await backendApi.getFavorites();
-      setFavorites(userFavorites.map(fav => fav._id || fav));
+      setFavorites(userFavorites || []);
     } catch (error) {
-      console.error("Failed to load favorites:", error);
+      console.error("❌ Failed to load favorites:", error.message);
+
+      // If token is invalid/expired or user not found, logout the user
+      if (error.message && (error.message.includes('token') || error.message.includes('User not found'))) {
+        backendApi.logout();
+        setUser(null);
+        setFavorites([]);
+      }
       setFavorites([]);
     }
   };
@@ -88,7 +98,8 @@ export const AuthProvider = ({ children }) => {
   const addToFavorites = async (movieId) => {
     try {
       await backendApi.addFavorite(movieId);
-      setFavorites(prev => [...prev, movieId]);
+      // Reload favorites to get full movie object
+      await loadFavorites();
       return true;
     } catch (error) {
       console.error("Failed to add favorite:", error);
@@ -100,7 +111,8 @@ export const AuthProvider = ({ children }) => {
   const removeFromFavorites = async (movieId) => {
     try {
       await backendApi.removeFavorite(movieId);
-      setFavorites(prev => prev.filter(id => id !== movieId));
+      // Remove from local state
+      setFavorites(prev => prev.filter(fav => (fav._id || fav.id || fav) !== movieId));
       return true;
     } catch (error) {
       console.error("Failed to remove favorite:", error);
@@ -110,7 +122,10 @@ export const AuthProvider = ({ children }) => {
 
   // Check if movie is favorited
   const isFavorite = (movieId) => {
-    return favorites.includes(movieId);
+    return favorites.some(fav => {
+      const favId = fav._id || fav.id || fav;
+      return favId === movieId || favId.toString() === movieId.toString();
+    });
   };
 
   // Toggle favorite
@@ -149,4 +164,3 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export default AuthContext;

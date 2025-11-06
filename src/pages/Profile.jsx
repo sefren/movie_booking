@@ -18,13 +18,16 @@ import {
   Eye,
   RefreshCw,
   XCircle,
+  Heart,
+  Star,
+  Film,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchAllBookings, updateProfile } from "../utils/backendApi";
 import { getImageUrl } from "../utils/api";
 
 const Profile = () => {
-  const { user, isAuthenticated, updateUser: updateAuthUser } = useAuth();
+  const { user, isAuthenticated, updateUser: updateAuthUser, favorites: userFavorites, removeFromFavorites } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,7 @@ const Profile = () => {
   });
   const [updateLoading, setUpdateLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
 
   // Update timer every second for pending bookings
   useEffect(() => {
@@ -66,6 +70,7 @@ const Profile = () => {
     }
   };
 
+
   // Fetch bookings on mount only
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -89,6 +94,18 @@ const Profile = () => {
 
     return () => clearInterval(refreshInterval);
   }, [user?.email]);
+
+  // Listen for favorites updates
+  useEffect(() => {
+    const handleFavoritesUpdate = () => {
+      // Favorites will automatically update from AuthContext
+      console.log("🔔 Favorites updated event received");
+    };
+
+    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
+    return () => window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
+  }, []);
+
 
   const handleEditChange = (e) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
@@ -157,6 +174,17 @@ const Profile = () => {
   const handleRetry = (booking) => {
     // Navigate back to booking page with pre-selected seats
     navigate(`/movie/${booking.movieId._id || booking.movieId}`);
+  };
+
+  const handleRemoveFavorite = async (e, movieId) => {
+    e.stopPropagation(); // Prevent navigation to movie detail
+    try {
+      await removeFromFavorites(movieId);
+      console.log("✅ Removed from favorites:", movieId);
+    } catch (error) {
+      console.error("❌ Failed to remove favorite:", error);
+      alert("Failed to remove from favorites");
+    }
   };
 
   if (loading) {
@@ -235,6 +263,66 @@ const Profile = () => {
               <p className="font-medium text-text">{bookings.length}</p>
             </div>
           </div>
+        </div>
+
+        {/* Favorites Section */}
+        <div className="mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-text mb-4">My Favorites</h2>
+
+          {!userFavorites ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-cinema-red mx-auto mb-2" />
+              <p className="text-sm text-text-muted">Loading favorites...</p>
+            </div>
+          ) : userFavorites.length === 0 ? (
+            <div className="text-center py-8">
+              <Heart className="h-8 w-8 mx-auto mb-2 text-text-dim" />
+              <p className="text-sm text-text-muted">No favorite movies yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
+              {userFavorites.map((movie) => (
+                <button
+                  key={movie._id || movie.id}
+                  onClick={() => navigate(`/movie/${movie._id || movie.id}`)}
+                  className="text-left group"
+                >
+                  <div className="aspect-[2/3] rounded overflow-hidden bg-surface-light border border-white/10 group-hover:border-white/30 transition-all relative">
+                    {movie.posterUrl || movie.posterPath ? (
+                      <img
+                        src={getImageUrl(movie.posterUrl || movie.posterPath, "poster", "medium")}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full grid place-items-center text-white/30">
+                        <Film className="w-8 h-8" />
+                      </div>
+                    )}
+                    <button
+                      onClick={(e) => handleRemoveFavorite(e, movie._id || movie.id)}
+                      className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full p-1.5 hover:bg-black/80 transition-colors z-10"
+                      title="Remove from favorites"
+                    >
+                      <Heart className="w-3.5 h-3.5 fill-current text-cinema-red" />
+                    </button>
+                  </div>
+                  <h3 className="mt-2 text-xs sm:text-sm font-medium line-clamp-2 text-white/90 group-hover:text-white">
+                    {movie.title}
+                  </h3>
+                  {movie.rating && (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-white/70">
+                      <Star className="w-3 h-3 fill-current text-cinema-gold" />
+                      <span>{movie.rating.toFixed(1)}</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bookings Section */}
