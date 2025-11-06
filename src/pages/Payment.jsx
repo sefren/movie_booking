@@ -133,7 +133,8 @@ const Payment = () => {
     setPaymentStatus(PAYMENT_STATUS.PROCESSING);
 
     try {
-      const amount = Math.round((bookingData.total || bookingData.totalAmount || 0) * 100); // Amount in paise
+      const totalAmount = (bookingData.total || bookingData.totalAmount || 0) + (THEATER_CONFIG.bookingFee * bookingData.seats.length);
+      const amount = Math.round(totalAmount * 100); // Amount in paise
 
       const options = {
         key: RAZORPAY_KEY_ID,
@@ -497,15 +498,18 @@ const Payment = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-muted">Booking Fee</span>
-                    <span className="text-text">{THEATER_CONFIG.currencySymbol}0</span>
+                    <span className="text-text">
+                      {THEATER_CONFIG.currencySymbol}
+                      {(THEATER_CONFIG.bookingFee * bookingData.seats.length).toFixed(0)}
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-baseline pt-3 border-t border-surface-border/50">
-                  <span className="text-text font-semibold">Total</span>
+                  <span className="text-text font-semibold">Total Amount</span>
                   <span className="text-text text-2xl font-semibold">
                     {THEATER_CONFIG.currencySymbol}
-                    {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
+                    {((bookingData.total || bookingData.totalAmount || 0) + (THEATER_CONFIG.bookingFee * bookingData.seats.length)).toFixed(0)}
                   </span>
                 </div>
               </div>
@@ -528,7 +532,7 @@ const Payment = () => {
                         <Lock className="w-4 h-4" />
                         <span>
                           Pay {THEATER_CONFIG.currencySymbol}
-                          {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
+                          {((bookingData.total || bookingData.totalAmount || 0) + (THEATER_CONFIG.bookingFee * bookingData.seats.length)).toFixed(0)}
                         </span>
                       </>
                     )}

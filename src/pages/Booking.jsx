@@ -566,7 +566,7 @@ const Booking = () => {
                                                     </div>
                                                     {useBackend && (
                                                         <div className="flex items-center justify-between text-xs opacity-70">
-                                                            <span>{st.screenName}</span>
+                                                            <span>{st.screenType || st.screenName}</span>
                                                             <span>{soldOut ? "Sold Out" : `${st.availableSeats} left`}</span>
                                                         </div>
                                                     )}

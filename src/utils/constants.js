@@ -5,7 +5,8 @@ export const THEATER_CONFIG = {
   rows: ["A", "B", "C", "D", "E", "F", "G", "H"],
   seatsPerRow: 12,
   aisleAfterSeat: 6, // Creates aisle after seat 6
-  pricePerSeat: 1000, // ₹1000 per seat (approx $12.5 * 80)
+  pricePerSeat: 1000, // ₹1000 per seat
+  bookingFee: 50, // ₹50 booking fee per ticket
   currency: "INR",
   currencySymbol: "₹",
   name: "Studio 9",

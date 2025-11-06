@@ -107,7 +107,7 @@ const Confirmation = () => {
     ctx.fillText('SCREEN:', 80, yPos);
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(booking.screenName || 'Screen 1', 220, yPos);
+    ctx.fillText(booking.screenType || booking.screenName || 'Standard', 220, yPos);
 
     yPos += 50;
     ctx.fillStyle = '#a1a1aa';
