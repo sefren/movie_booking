@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   CreditCard,
   Lock,
@@ -63,7 +64,7 @@ const Payment = () => {
         setTimeRemaining(null);
         // Redirect back to booking after a short delay
         setTimeout(() => {
-          alert('Your seat reservation has expired. Please select your seats again.');
+          toast.error('Your seat reservation has expired. Please select your seats again.');
           navigate(`/booking/${bookingData.movie?.id || bookingData.movie?._id}`);
         }, 2000);
       } else {
@@ -100,7 +101,7 @@ const Payment = () => {
       const loaded = await loadRazorpayScript();
       setRazorpayLoaded(loaded);
       if (!loaded) {
-        alert('Failed to load Razorpay SDK. Please refresh the page.');
+        toast.error('Failed to load payment system. Please refresh the page.');
       }
     };
     loadScript();
@@ -119,12 +120,12 @@ const Payment = () => {
   // Process Razorpay payment
   const processPayment = async () => {
     if (!razorpayLoaded) {
-      alert('Payment system not loaded. Please refresh the page.');
+      toast.error('Payment system not loaded. Please refresh the page.');
       return;
     }
 
     if (!user) {
-      alert('Please login to continue with payment');
+      toast.error('Please login to continue with payment');
       return;
     }
 
@@ -219,7 +220,7 @@ const Payment = () => {
         console.error('Payment failed:', response.error);
         setPaymentStatus(PAYMENT_STATUS.FAILED);
         setIsProcessing(false);
-        alert(`Payment failed: ${response.error.description}`);
+        toast.error(`Payment failed: ${response.error.description}`);
       });
 
       razorpay.open();
@@ -227,7 +228,7 @@ const Payment = () => {
       console.error('Payment error:', error);
       setPaymentStatus(PAYMENT_STATUS.FAILED);
       setIsProcessing(false);
-      alert('Payment initiation failed. Please try again.');
+      toast.error('Payment initiation failed. Please try again.');
     }
   };
 
@@ -317,248 +318,234 @@ const Payment = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Payment Form */}
-          <div className="lg:col-span-2 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column - Payment Details */}
+          <div className="lg:col-span-8 space-y-6">
             {/* Timer Warning */}
-            {timeRemaining && timeRemaining <= 300000 && !lockExpired && ( // 5 minutes or less
-              <div className={`card border-2 flex items-start gap-3 ${
+            {timeRemaining && timeRemaining <= 300000 && !lockExpired && (
+              <div className={`border-l-4 p-4 ${
                 timeRemaining <= 120000 
-                  ? 'bg-danger/10 border-danger/30' 
-                  : 'bg-warning/10 border-warning/30'
+                  ? 'bg-danger/5 border-danger' 
+                  : 'bg-warning/5 border-warning'
               }`}>
-                <Clock className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-                  timeRemaining <= 120000 ? 'text-danger' : 'text-warning'
-                }`} />
-                <div>
-                  <h3 className={`font-semibold mb-1 ${
+                <div className="flex items-start gap-3">
+                  <Clock className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
                     timeRemaining <= 120000 ? 'text-danger' : 'text-warning'
-                  }`}>
-                    {timeRemaining <= 120000 ? '⚠️ Hurry! Time is running out!' : '⏰ Complete payment soon'}
-                  </h3>
-                  <p className="text-sm text-text-muted">
-                    Your seats will be released in {formatTimeRemaining(timeRemaining)} if payment is not completed.
-                  </p>
+                  }`} />
+                  <div>
+                    <h3 className={`font-semibold mb-1 text-sm ${
+                      timeRemaining <= 120000 ? 'text-danger' : 'text-warning'
+                    }`}>
+                      {timeRemaining <= 120000 ? 'Time is running out' : 'Complete payment soon'}
+                    </h3>
+                    <p className="text-xs text-text-muted">
+                      Your seats will be released in {formatTimeRemaining(timeRemaining)}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Lock Expired Message */}
             {lockExpired && (
-              <div className="card bg-danger/10 border-2 border-danger/30 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-danger mb-1">Seat Reservation Expired</h3>
-                  <p className="text-sm text-danger/80">Your selected seats have been released. Please select your seats again.</p>
+              <div className="border-l-4 border-danger bg-danger/5 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-danger mb-1 text-sm">Seat Reservation Expired</h3>
+                    <p className="text-xs text-danger/80">Your selected seats have been released. Please select your seats again.</p>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Payment Status */}
+            {/* Payment Status Messages */}
             {paymentStatus === PAYMENT_STATUS.PROCESSING && (
-              <div className="card bg-cinema-blue/10 border-2 border-cinema-blue/30 flex items-start gap-3">
-                <Loader2 className="w-5 h-5 animate-spin text-cinema-blue flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-text mb-1">Processing Payment</h3>
-                  <p className="text-sm text-text-muted">Please wait while we process your payment...</p>
+              <div className="border-l-4 border-cinema-blue bg-cinema-blue/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-cinema-blue flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-text mb-1 text-sm">Processing Payment</h3>
+                    <p className="text-xs text-text-muted">Please wait while we process your payment...</p>
+                  </div>
                 </div>
               </div>
             )}
 
             {paymentStatus === PAYMENT_STATUS.SUCCESS && (
-              <div className="card bg-success/10 border-2 border-success/30 flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-success mb-1">Payment Successful!</h3>
-                  <p className="text-sm text-success/80">Redirecting to confirmation page...</p>
+              <div className="border-l-4 border-success bg-success/5 p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-success mb-1 text-sm">Payment Successful</h3>
+                    <p className="text-xs text-success/80">Redirecting to confirmation page...</p>
+                  </div>
                 </div>
               </div>
             )}
 
             {paymentStatus === PAYMENT_STATUS.FAILED && (
-              <div className="card bg-danger/10 border-2 border-danger/30 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-danger mb-1">Payment Failed</h3>
-                  <p className="text-sm text-danger/80 mb-3">Your payment could not be processed. Please try again.</p>
-                  <button onClick={handleRetry} className="btn-secondary text-sm">
-                    Try Again
-                  </button>
+              <div className="border-l-4 border-danger bg-danger/5 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-danger mb-1 text-sm">Payment Failed</h3>
+                    <p className="text-xs text-danger/80 mb-3">Your payment could not be processed. Please try again.</p>
+                    <button onClick={handleRetry} className="btn-secondary text-xs">
+                      Try Again
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Payment Method Selection */}
+            {/* Payment Method */}
             {paymentStatus === PAYMENT_STATUS.PENDING && (
-              <>
-                <div className="card">
-                  <h2 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-cinema-red" />
-                    Payment via Razorpay
-                  </h2>
+              <div>
+                <h2 className="text-sm font-semibold text-text mb-4 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-cinema-red" />
+                  Payment Method
+                </h2>
 
-                  <div className="bg-surface-light/50 border border-surface-border rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <CreditCard className="w-6 h-6 text-cinema-red mt-1" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-text mb-2">All Payment Methods Supported</p>
-                        <div className="text-sm text-text-muted space-y-1">
-                          <p>✓ Credit & Debit Cards (Visa, Mastercard, Amex, etc.)</p>
-                          <p>✓ UPI (Google Pay, PhonePe, Paytm, etc.)</p>
-                          <p>✓ Net Banking (All major banks)</p>
-                          <p>✓ Digital Wallets (Paytm, PhonePe, etc.)</p>
-                        </div>
+                <div className="border border-surface-border rounded p-4 bg-surface/30">
+                  <div className="flex items-start gap-3">
+                    <CreditCard className="w-5 h-5 text-cinema-red mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-text text-sm mb-2">Razorpay Payment Gateway</p>
+                      <div className="text-xs text-text-muted space-y-1">
+                        <p>• Credit & Debit Cards</p>
+                        <p>• UPI (Google Pay, PhonePe, Paytm)</p>
+                        <p>• Net Banking</p>
+                        <p>• Digital Wallets</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Security Notice */}
-                <div className="bg-cinema-blue/10 border border-cinema-blue/30 p-4 rounded-lg flex items-start space-x-3">
-                  <Lock className="w-5 h-5 text-cinema-blue mt-0.5" />
-                  <div className="text-sm text-text">
-                    <p className="font-medium mb-1">🔒 Secure Payment via Razorpay</p>
-                    <p className="text-text-muted">
-                      All transactions are encrypted and processed securely through Razorpay.
-                      We never store your payment information.
-                    </p>
-                  </div>
+                <div className="mt-4 flex items-start gap-3 p-3 bg-cinema-blue/5 rounded">
+                  <Lock className="w-4 h-4 text-cinema-blue mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-text-muted">
+                    All transactions are encrypted and processed securely through Razorpay. We never store your payment information.
+                  </p>
                 </div>
-              </>
+              </div>
             )}
           </div>
 
           {/* Booking Summary */}
-          <div className="card-glass lg:sticky lg:top-4 shadow-xl">
-            <h3 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-cinema-red" />
-              Order Summary
-            </h3>
+          <div className="lg:col-span-4">
+            <div className="lg:sticky lg:top-4">
+              <h3 className="text-xs uppercase tracking-wider text-text-dim mb-4">Booking Summary</h3>
 
-            {/* Movie Info */}
-            <div className="flex gap-4 mb-6 pb-6 border-b border-surface-border">
-              {posterUrl ? (
-                <img
-                  src={posterUrl}
-                  alt={
-                    bookingData.movie?.title ||
-                    bookingData.movieId?.title ||
-                    "Movie"
-                  }
-                  className="w-20 h-30 object-cover rounded-lg border-2 border-cinema-red/20 shadow-lg"
-                  onError={(e) => {
-                    e.target.src = "/placeholder-movie-poster.jpg";
-                  }}
-                />
-              ) : (
-                <div className="w-20 h-30 bg-surface-light rounded-lg border border-surface-border flex items-center justify-center">
-                  <Film className="h-6 w-6 text-text-dim" />
-                </div>
-              )}
-              <div className="flex-1">
-                <h4 className="font-semibold text-text mb-3 line-clamp-2">
-                  {bookingData.movie?.title ||
-                    bookingData.movieId?.title ||
-                    "Movie"}
-                </h4>
-                <div className="space-y-2 text-sm text-text-muted">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-cinema-blue" />
-                    <span>
-                      {new Date(bookingData.date).toLocaleDateString("en-US", {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
+              {/* Movie Info */}
+              <div className="flex gap-4 pb-6 border-b border-surface-border/50">
+                {posterUrl ? (
+                  <img
+                    src={posterUrl}
+                    alt={bookingData.movie?.title || bookingData.movieId?.title || "Movie"}
+                    className="w-16 h-24 object-cover rounded"
+                    onError={(e) => {
+                      e.target.src = "/placeholder-movie-poster.jpg";
+                    }}
+                  />
+                ) : (
+                  <div className="w-16 h-24 bg-surface-light rounded flex items-center justify-center">
+                    <Film className="h-6 w-6 text-text-dim" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-cinema-blue" />
-                    <span>
-                      {bookingData.showtime?.time || bookingData.showtime}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-3.5 h-3.5 text-cinema-blue" />
-                    <span className="line-clamp-1">
-                      {Array.isArray(bookingData.seats)
-                        ? bookingData.seats
-                            .map((s) => (typeof s === "string" ? s : s.seatId))
-                            .join(", ")
-                        : ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Price Breakdown */}
-            <div className="space-y-3 text-sm mb-6">
-              <div className="flex justify-between">
-                <span className="text-text-muted font-medium">
-                  Tickets ({bookingData.seats.length})
-                </span>
-                <span className="text-text font-medium">
-                  {THEATER_CONFIG.currencySymbol}
-                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-muted font-medium">Booking Fee</span>
-                <span className="text-text font-medium">
-                  {THEATER_CONFIG.currencySymbol}0
-                </span>
-              </div>
-              <div className="divider my-4"></div>
-              <div className="flex justify-between items-center p-4 rounded-lg bg-gradient-to-r from-cinema-red/10 to-cinema-gold/10 border border-cinema-red/20">
-                <span className="text-text font-bold text-lg">Total</span>
-                <span className="text-cinema-gold font-bold text-2xl">
-                  {THEATER_CONFIG.currencySymbol}
-                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
-                </span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              {paymentStatus === PAYMENT_STATUS.PENDING && (
-                <button
-                  onClick={processPayment}
-                  disabled={isProcessing || !razorpayLoaded}
-                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 py-4 text-base"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-5 h-5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-text mb-3 line-clamp-2 text-sm">
+                    {bookingData.movie?.title || bookingData.movieId?.title || "Movie"}
+                  </h4>
+                  <div className="space-y-2 text-xs text-text-muted">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-cinema-blue" />
                       <span>
-                        Pay {THEATER_CONFIG.currencySymbol}
-                        {(
-                          bookingData.total ||
-                          bookingData.totalAmount ||
-                          0
-                        ).toFixed(0)}
+                        {new Date(bookingData.date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
                       </span>
-                    </>
-                  )}
-                </button>
-              )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-cinema-blue" />
+                      <span>{bookingData.showtime?.time || bookingData.showtime}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-cinema-blue" />
+                      <span className="line-clamp-1">
+                        {Array.isArray(bookingData.seats)
+                          ? bookingData.seats.map((s) => (typeof s === "string" ? s : s.seatId)).join(", ")
+                          : ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              {paymentStatus === PAYMENT_STATUS.FAILED && (
-                <button onClick={handleRetry} className="w-full btn-primary py-4 text-base">
-                  Try Again
-                </button>
-              )}
+              {/* Price Breakdown */}
+              <div className="py-6 border-b border-surface-border/50">
+                <div className="space-y-2 text-sm mb-4">
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Tickets ({bookingData.seats.length})</span>
+                    <span className="text-text">
+                      {THEATER_CONFIG.currencySymbol}
+                      {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Booking Fee</span>
+                    <span className="text-text">{THEATER_CONFIG.currencySymbol}0</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-baseline pt-3 border-t border-surface-border/50">
+                  <span className="text-text font-semibold">Total</span>
+                  <span className="text-text text-2xl font-semibold">
+                    {THEATER_CONFIG.currencySymbol}
+                    {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-6">
+                {paymentStatus === PAYMENT_STATUS.PENDING && (
+                  <button
+                    onClick={processPayment}
+                    disabled={isProcessing || !razorpayLoaded || lockExpired}
+                    className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>
+                          Pay {THEATER_CONFIG.currencySymbol}
+                          {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {paymentStatus === PAYMENT_STATUS.FAILED && (
+                  <button onClick={handleRetry} className="w-full btn-primary">
+                    Try Again
+                  </button>
+                )}
+
+                <p className="text-xs text-text-dim mt-4 text-center leading-relaxed">
+                  Secure payment. By clicking "Pay", you agree to our terms.
+                </p>
+              </div>
             </div>
-
-            <p className="text-xs text-text-dim mt-4 text-center leading-relaxed">
-              🔒 Secure payment. By clicking "Pay", you agree to our terms.
-            </p>
           </div>
         </div>
       </div>

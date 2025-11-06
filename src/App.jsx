@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ScrollManager from "./components/ScrollManager";
@@ -13,6 +14,30 @@ import MovieDetails from "./pages/MovieDetail";
 function AppContent() {
     return (
         <div className="min-h-screen bg-base-900 flex flex-col">
+            <Toaster
+                position="top-center"
+                reverseOrder={false}
+                toastOptions={{
+                    duration: 3000,
+                    style: {
+                        background: '#27272a',
+                        color: '#fafafa',
+                        border: '1px solid #3f3f46',
+                    },
+                    success: {
+                        iconTheme: {
+                            primary: '#22c55e',
+                            secondary: '#fafafa',
+                        },
+                    },
+                    error: {
+                        iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#fafafa',
+                        },
+                    },
+                }}
+            />
             <Header showSearch={true} />
 
             <main className="flex-1">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useMovieDetails } from "../hooks/useMovies";
 import SeatGrid from "../components/SeatGrid";
 import {
@@ -206,7 +207,7 @@ const Booking = () => {
     // Seat select
     const handleSeatSelect = (seatId, isSelecting) => {
         if (isSelecting && selectedSeats.length >= VALIDATION_RULES.maxSeatsPerBooking) {
-            alert(ERROR_MESSAGES.maxSeatsExceeded);
+            toast.error(ERROR_MESSAGES.maxSeatsExceeded);
             return;
         }
         setSelectedSeats(prev => (isSelecting ? [...prev, seatId] : prev.filter(x => x !== seatId)));
@@ -215,10 +216,37 @@ const Booking = () => {
     // Handle showtime selection - clear seats when changing showtime
     const handleShowtimeSelect = (showtime) => {
         if (selectedShowtime && selectedShowtime.id !== showtime.id && selectedSeats.length > 0) {
-            if (!confirm("Changing showtime will clear your selected seats. Continue?")) {
-                return;
-            }
-            setSelectedSeats([]);
+            // Show toast with confirmation buttons
+            toast((t) => (
+                <div className="flex flex-col gap-3">
+                    <div>
+                        <p className="font-semibold text-sm">Change showtime?</p>
+                        <p className="text-xs text-text-muted mt-1">Your selected seats will be cleared</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                setSelectedSeats([]);
+                                setSelectedShowtime(showtime);
+                                toast.dismiss(t.id);
+                            }}
+                            className="px-3 py-1 bg-cinema-red text-white text-xs rounded hover:bg-cinema-red/80"
+                        >
+                            Confirm
+                        </button>
+                        <button
+                            onClick={() => toast.dismiss(t.id)}
+                            className="px-3 py-1 bg-surface-light text-text text-xs rounded hover:bg-surface-lighter"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            ), {
+                duration: 5000,
+                position: 'top-center',
+            });
+            return;
         }
         setSelectedShowtime(showtime);
     };
@@ -342,7 +370,7 @@ const Booking = () => {
             localStorage.setItem("currentBooking", JSON.stringify(bookingData));
             navigate("/payment");
         } catch (err) {
-            alert(err.message || ERROR_MESSAGES.bookingFailed);
+            toast.error(err.message || ERROR_MESSAGES.bookingFailed);
         } finally {
             setIsProcessing(false);
         }
