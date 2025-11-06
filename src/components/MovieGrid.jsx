@@ -1,4 +1,4 @@
-﻿﻿import React, { memo, useMemo } from "react";
+﻿import React, { memo, useMemo } from "react";
 import MovieCard from "./MovieCard";
 import { Film, AlertCircle } from "lucide-react";
 import Pagination from "./Pagination";
@@ -34,16 +34,30 @@ const MovieGrid = memo(function MovieGrid({
     // Initial loading skeleton (first load only)
     if (loading) {
         return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6" data-movie-grid>
-                {Array.from({ length: 12 }).map((_, index) => (
-                    <div key={index} className="overflow-hidden">
-                        <div className="aspect-[2/3] bg-white/5 rounded-lg animate-pulse" />
-                        <div className="pt-2.5 pb-3 space-y-2">
-                            <div className="h-4 bg-white/5 rounded animate-pulse" />
-                            <div className="h-3 bg-white/5 rounded w-3/4 animate-pulse" />
+            <div>
+                {/* Show header immediately even during loading */}
+                <div className="mb-8 pb-6 border-b border-white/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                                {activeTab === "now_playing" ? "Now Playing" : "Coming Soon"}
+                            </h2>
+                            <p className="text-sm text-white/60">Loading movies...</p>
                         </div>
                     </div>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6" data-movie-grid>
+                    {Array.from({ length: 12 }).map((_, index) => (
+                        <div key={index} className="overflow-hidden">
+                            <div className="aspect-[2/3] bg-white/5 rounded-lg animate-pulse" />
+                            <div className="pt-2.5 pb-3 space-y-2">
+                                <div className="h-4 bg-white/5 rounded animate-pulse" />
+                                <div className="h-3 bg-white/5 rounded w-3/4 animate-pulse" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

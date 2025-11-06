@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿﻿import React, { useState, useEffect, useRef } from 'react';
+import { useImageLoading } from '../contexts/ImageLoadingContext';
 
 const LazyImage = ({
   src,
@@ -13,8 +14,14 @@ const LazyImage = ({
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const imgRef = useRef(null);
+  const { enableImageLoading } = useImageLoading();
 
   useEffect(() => {
+    // Don't start loading images until text content is rendered
+    if (!enableImageLoading) {
+      return;
+    }
+
     // Reset states when src changes
     setImageLoading(true);
     setImageError(false);
@@ -44,7 +51,7 @@ const LazyImage = ({
       img.onload = null;
       img.onerror = null;
     };
-  }, [src, placeholder, onError]);
+  }, [src, placeholder, onError, enableImageLoading]);
 
   return (
     <div className={`relative ${className}`}>

@@ -14,6 +14,15 @@
         font-feature-settings: "rlig" 1, "calt" 1;
     }
 
+    /* Optimize rendering: text first, images later */
+    img {
+        content-visibility: auto;
+    }
+
+    /* Ensure text is always visible immediately */
+    h1, h2, h3, h4, h5, h6, p, span, a {
+        content-visibility: visible;
+    }
 
     /* Custom Scrollbar */
     ::-webkit-scrollbar {
