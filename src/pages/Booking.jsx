@@ -154,11 +154,17 @@ const Booking = () => {
     // Occupied seats
     useEffect(() => {
         const loadOccupiedSeats = async () => {
-            if (!selectedShowtime || !selectedDate || !useBackend) return;
+            if (!selectedShowtime || !selectedDate || !useBackend) {
+                setOccupiedSeats([]);
+                return;
+            }
             try {
+                console.log('🔄 Fetching occupied seats for showtime:', selectedShowtime.id);
                 const occupied = await fetchOccupiedSeats(id, selectedDate, selectedShowtime);
+                console.log('✅ Occupied seats:', occupied);
                 setOccupiedSeats(occupied);
-            } catch {
+            } catch (error) {
+                console.error('❌ Failed to fetch occupied seats:', error);
                 setOccupiedSeats([]);
             }
         };
@@ -206,6 +212,17 @@ const Booking = () => {
         setSelectedSeats(prev => (isSelecting ? [...prev, seatId] : prev.filter(x => x !== seatId)));
     };
 
+    // Handle showtime selection - clear seats when changing showtime
+    const handleShowtimeSelect = (showtime) => {
+        if (selectedShowtime && selectedShowtime.id !== showtime.id && selectedSeats.length > 0) {
+            if (!confirm("Changing showtime will clear your selected seats. Continue?")) {
+                return;
+            }
+            setSelectedSeats([]);
+        }
+        setSelectedShowtime(showtime);
+    };
+
     // Form
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -215,17 +232,46 @@ const Booking = () => {
 
     const validateForm = () => {
         const errors = {};
-        if (!bookingForm.name.trim()) errors.name = "Name is required";
-        else if (bookingForm.name.length < VALIDATION_RULES.name.minLength) errors.name = `Name must be at least ${VALIDATION_RULES.name.minLength} characters`;
-        else if (!VALIDATION_RULES.name.pattern.test(bookingForm.name)) errors.name = ERROR_MESSAGES.invalidName;
 
-        if (!bookingForm.email.trim()) errors.email = "Email is required";
-        else if (!VALIDATION_RULES.email.pattern.test(bookingForm.email)) errors.email = ERROR_MESSAGES.invalidEmail;
+        // Check if date is selected
+        if (!selectedDate) {
+            errors.date = "Please select a date";
+        }
 
-        if (!bookingForm.phone.trim()) errors.phone = "Phone number is required";
-        else if (!VALIDATION_RULES.phone.pattern.test(bookingForm.phone)) errors.phone = ERROR_MESSAGES.invalidPhone;
+        // Check if showtime is selected
+        if (!selectedShowtime) {
+            errors.showtime = "Please select a showtime";
+        }
 
-        if (selectedSeats.length === 0) errors.seats = ERROR_MESSAGES.noSeatsSelected;
+        // Check if seats are selected
+        if (selectedSeats.length === 0) {
+            errors.seats = ERROR_MESSAGES.noSeatsSelected;
+        } else if (selectedSeats.length < VALIDATION_RULES.minSeatsPerBooking) {
+            errors.seats = `Please select at least ${VALIDATION_RULES.minSeatsPerBooking} seat`;
+        } else if (selectedSeats.length > VALIDATION_RULES.maxSeatsPerBooking) {
+            errors.seats = `Maximum ${VALIDATION_RULES.maxSeatsPerBooking} seats allowed per booking`;
+        }
+
+        // Customer info validation
+        if (!bookingForm.name.trim()) {
+            errors.name = "Name is required";
+        } else if (bookingForm.name.length < VALIDATION_RULES.name.minLength) {
+            errors.name = `Name must be at least ${VALIDATION_RULES.name.minLength} characters`;
+        } else if (!VALIDATION_RULES.name.pattern.test(bookingForm.name)) {
+            errors.name = ERROR_MESSAGES.invalidName;
+        }
+
+        if (!bookingForm.email.trim()) {
+            errors.email = "Email is required";
+        } else if (!VALIDATION_RULES.email.pattern.test(bookingForm.email)) {
+            errors.email = ERROR_MESSAGES.invalidEmail;
+        }
+
+        if (!bookingForm.phone.trim()) {
+            errors.phone = "Phone number is required";
+        } else if (!VALIDATION_RULES.phone.pattern.test(bookingForm.phone)) {
+            errors.phone = ERROR_MESSAGES.invalidPhone;
+        }
 
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
@@ -262,7 +308,8 @@ const Booking = () => {
                     movie: {
                         id: backendMovie?._id || id,
                         title: backendMovie?.title || tmdbMovie?.title,
-                        poster_path: backendMovie?.pos || tmdbMovie?.posterPath,
+                        posterUrl: backendMovie?.posterUrl, // Backend full URL
+                        poster_path: backendMovie?.posterPath || tmdbMovie?.posterPath,
                         runtime: backendMovie?.duration || tmdbMovie?.runtime,
                     },
                     showtime: selectedShowtime,
@@ -330,11 +377,12 @@ const Booking = () => {
     }
 
     // Images/fields
-    const posterUrl = getImageUrl(
-        displayMovie?.posterPath || displayMovie?.poster_path,
-        "poster",
-        "large"
-    );
+    const posterUrl = displayMovie?.posterUrl || // Backend full URL
+        getImageUrl(
+            displayMovie?.posterPath || displayMovie?.poster_path,
+            "poster",
+            "large"
+        );
     const movieTitle = displayMovie?.title || "Movie";
     const movieRating = displayMovie?.rating ?? displayMovie?.vote_average;
     const movieDuration = displayMovie?.duration ?? displayMovie?.runtime;
@@ -470,7 +518,7 @@ const Booking = () => {
                                             return (
                                                 <button
                                                     key={st.id || st.time}
-                                                    onClick={() => setSelectedShowtime(st)}
+                                                    onClick={() => handleShowtimeSelect(st)}
                                                     disabled={soldOut}
                                                     className={`p-3 text-left rounded transition-colors ${
                                                         active
@@ -484,7 +532,7 @@ const Booking = () => {
                                                         <span className="font-semibold text-sm">{st.time}</span>
                                                         {useBackend && (
                                                             <span className="text-xs">
-                                                                {THEATER_CONFIG.currencySymbol}{Number(st.price || 0).toFixed(2)}
+                                                                {THEATER_CONFIG.currencySymbol}{Number(st.price || 0).toFixed(0)}
                                                             </span>
                                                         )}
                                                     </div>
@@ -590,15 +638,21 @@ const Booking = () => {
                                 <div className="flex justify-between items-baseline">
                                     <span className="text-text font-semibold">Total</span>
                                     <span className="text-text text-2xl font-semibold">
-                                        {THEATER_CONFIG.currencySymbol}{calculateTotal().toFixed(2)}
+                                        {THEATER_CONFIG.currencySymbol}{calculateTotal().toFixed(0)}
                                     </span>
                                 </div>
                             </div>
 
                             <button
                                 onClick={handleBooking}
-                                disabled={isProcessing || selectedSeats.length === 0}
-                                className="w-full btn-primary disabled:opacity-50"
+                                disabled={isProcessing || !selectedDate || !selectedShowtime || selectedSeats.length === 0}
+                                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={
+                                    !selectedDate ? "Please select a date" :
+                                    !selectedShowtime ? "Please select a showtime" :
+                                    selectedSeats.length === 0 ? "Please select at least one seat" :
+                                    "Proceed to payment"
+                                }
                             >
                                 {isProcessing ? (
                                     <>
@@ -609,6 +663,15 @@ const Booking = () => {
                                     "Proceed to Payment"
                                 )}
                             </button>
+
+                            {/* Show validation message */}
+                            {(!selectedDate || !selectedShowtime || selectedSeats.length === 0) && (
+                                <p className="text-xs text-cinema-red mt-2 text-center">
+                                    {!selectedDate ? "⚠️ Please select a date" :
+                                     !selectedShowtime ? "⚠️ Please select a showtime" :
+                                     "⚠️ Please select at least one seat"}
+                                </p>
+                            )}
 
                             <p className="text-xs text-text-dim mt-3 text-center">By proceeding, you agree to our terms</p>
                         </div>

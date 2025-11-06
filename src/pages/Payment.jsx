@@ -16,141 +16,23 @@ import {
 import { getImageUrl } from "../utils/api";
 import { confirmBooking } from "../utils/backendApi";
 import { THEATER_CONFIG, PAYMENT_STATUS } from "../utils/constants";
+import { useAuth } from "../contexts/AuthContext";
 
-// ============================================================================
-// CARD VALIDATION HELPERS
-// ============================================================================
+// Razorpay key from environment variable
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
-/**
- * Validate credit card number using Luhn algorithm
- */
-const validateCardNumber = (cardNumber) => {
-  const digits = cardNumber.replace(/\s/g, "");
+// Check if using test mode
+const isTestMode = RAZORPAY_KEY_ID.includes('test') || RAZORPAY_KEY_ID === import.meta.env.VITE_RAZORPAY_KEY_ID;
 
-  if (!/^\d{13,19}$/.test(digits)) {
-    return { valid: false, message: "Card number must be 13-19 digits" };
-  }
-
-  // Luhn algorithm
-  let sum = 0;
-  let shouldDouble = false;
-
-  // Loop from right to left
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let digit = parseInt(digits[i], 10);
-
-    if (shouldDouble) {
-      digit *= 2;
-      if (digit > 9) {
-        digit -= 9;
-      }
-    }
-
-    sum += digit;
-    shouldDouble = !shouldDouble;
-  }
-
-  if (sum % 10 !== 0) {
-    return { valid: false, message: "Invalid card number" };
-  }
-
-  return { valid: true, message: "" };
-};
-
-/**
- * Detect card type from number
- */
-const detectCardType = (cardNumber) => {
-  const digits = cardNumber.replace(/\s/g, "");
-
-  if (/^4/.test(digits)) return "Visa";
-  if (/^5[1-5]/.test(digits)) return "Mastercard";
-  if (/^3[47]/.test(digits)) return "American Express";
-  if (/^6(?:011|5)/.test(digits)) return "Discover";
-  if (/^35/.test(digits)) return "JCB";
-
-  return "Unknown";
-};
-
-/**
- * Validate expiry date
- */
-const validateExpiryDate = (expiryDate) => {
-  if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
-    return { valid: false, message: "Enter valid format (MM/YY)" };
-  }
-
-  const [month, year] = expiryDate.split("/").map((num) => parseInt(num, 10));
-
-  // Validate month
-  if (month < 1 || month > 12) {
-    return { valid: false, message: "Invalid month (01-12)" };
-  }
-
-  // Validate year (check if card is expired)
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear() % 100; // Get last 2 digits
-  const currentMonth = currentDate.getMonth() + 1; // 0-indexed
-
-  if (year < currentYear) {
-    return { valid: false, message: "Card has expired" };
-  }
-
-  if (year === currentYear && month < currentMonth) {
-    return { valid: false, message: "Card has expired" };
-  }
-
-  // Check if expiry is too far in future (more than 10 years)
-  if (year > currentYear + 10) {
-    return { valid: false, message: "Expiry year seems invalid" };
-  }
-
-  return { valid: true, message: "" };
-};
-
-/**
- * Validate CVV
- */
-const validateCVV = (cvv, cardType) => {
-  // American Express uses 4-digit CVV, others use 3
-  const requiredLength = cardType === "American Express" ? 4 : 3;
-
-  if (!/^\d+$/.test(cvv)) {
-    return { valid: false, message: "CVV must contain only digits" };
-  }
-
-  if (cvv.length !== requiredLength) {
-    return {
-      valid: false,
-      message: `CVV must be ${requiredLength} digits for ${cardType}`,
-    };
-  }
-
-  return { valid: true, message: "" };
-};
-
-/**
- * Validate cardholder name
- */
-const validateCardholderName = (name) => {
-  const trimmedName = name.trim();
-
-  if (!trimmedName) {
-    return { valid: false, message: "Cardholder name is required" };
-  }
-
-  if (trimmedName.length < 2) {
-    return { valid: false, message: "Name must be at least 2 characters" };
-  }
-
-  if (!/^[a-zA-Z\s\-.]+$/.test(trimmedName)) {
-    return {
-      valid: false,
-      message: "Name can only contain letters, spaces, hyphens, and periods",
-    };
-  }
-
-  return { valid: true, message: "" };
+// Load Razorpay script
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 };
 
 // ============================================================================
@@ -159,18 +41,70 @@ const validateCardholderName = (name) => {
 
 const Payment = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [bookingData, setBookingData] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("card");
-  const [paymentForm, setPaymentForm] = useState({
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    cardholderName: "",
-  });
-  const [cardType, setCardType] = useState("Unknown");
   const [paymentStatus, setPaymentStatus] = useState(PAYMENT_STATUS.PENDING);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [lockExpired, setLockExpired] = useState(false);
+
+  // Calculate time remaining for seat lock
+  useEffect(() => {
+    if (!bookingData?.lockedUntil) return;
+
+    const updateTimer = () => {
+      const now = new Date();
+      const lockedUntil = new Date(bookingData.lockedUntil);
+      const diff = lockedUntil - now;
+
+      if (diff <= 0) {
+        setLockExpired(true);
+        setTimeRemaining(null);
+        // Redirect back to booking after a short delay
+        setTimeout(() => {
+          alert('Your seat reservation has expired. Please select your seats again.');
+          navigate(`/booking/${bookingData.movie?.id || bookingData.movie?._id}`);
+        }, 2000);
+      } else {
+        setTimeRemaining(diff);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [bookingData, navigate]);
+
+  // Format time remaining for display
+  const formatTimeRemaining = (ms) => {
+    if (!ms) return '0:00';
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Get time color based on remaining time
+  const getTimeColor = (ms) => {
+    if (!ms) return 'text-danger';
+    const minutes = Math.floor(ms / 60000);
+    if (minutes <= 2) return 'text-danger';
+    if (minutes <= 5) return 'text-warning';
+    return 'text-cinema-blue';
+  };
+
+  // Load Razorpay script on mount
+  useEffect(() => {
+    const loadScript = async () => {
+      const loaded = await loadRazorpayScript();
+      setRazorpayLoaded(loaded);
+      if (!loaded) {
+        alert('Failed to load Razorpay SDK. Please refresh the page.');
+      }
+    };
+    loadScript();
+  }, []);
 
   // Load booking data from localStorage
   useEffect(() => {
@@ -178,105 +112,19 @@ const Payment = () => {
     if (storedBooking) {
       setBookingData(JSON.parse(storedBooking));
     } else {
-      // Redirect if no booking data
       navigate("/", { replace: true });
     }
   }, [navigate]);
 
-  // Detect card type as user types
-  useEffect(() => {
-    if (paymentForm.cardNumber) {
-      setCardType(detectCardType(paymentForm.cardNumber));
-    } else {
-      setCardType("Unknown");
-    }
-  }, [paymentForm.cardNumber]);
-
-  // Handle input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    let formattedValue = value;
-
-    // Format card number
-    if (name === "cardNumber") {
-      // Remove all non-digits first
-      const digitsOnly = value.replace(/\D/g, "");
-
-      // Limit to 16 digits (most common card length)
-      if (digitsOnly.length > 16) return;
-
-      // Format with spaces every 4 digits
-      formattedValue = digitsOnly.replace(/(.{4})/g, "$1 ").trim();
-    }
-
-    // Format expiry date
-    if (name === "expiryDate") {
-      formattedValue = value.replace(/\D/g, "");
-      if (formattedValue.length >= 2) {
-        formattedValue =
-          formattedValue.substring(0, 2) + "/" + formattedValue.substring(2, 4);
-      }
-      if (formattedValue.length > 5) return; // MM/YY
-    }
-
-    // Format CVV (3 or 4 digits depending on card type)
-    if (name === "cvv") {
-      formattedValue = value.replace(/\D/g, "");
-      const maxLength = cardType === "American Express" ? 4 : 3;
-      if (formattedValue.length > maxLength) return;
-    }
-
-    setPaymentForm((prev) => ({
-      ...prev,
-      [name]: formattedValue,
-    }));
-
-    // Clear error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  // Validate payment form
-  const validateForm = () => {
-    const errors = {};
-
-    if (paymentMethod === "card") {
-      // Card number validation
-      const cardValidation = validateCardNumber(paymentForm.cardNumber);
-      if (!cardValidation.valid) {
-        errors.cardNumber = cardValidation.message;
-      }
-
-      // Expiry date validation
-      const expiryValidation = validateExpiryDate(paymentForm.expiryDate);
-      if (!expiryValidation.valid) {
-        errors.expiryDate = expiryValidation.message;
-      }
-
-      // CVV validation
-      const cvvValidation = validateCVV(paymentForm.cvv, cardType);
-      if (!cvvValidation.valid) {
-        errors.cvv = cvvValidation.message;
-      }
-
-      // Cardholder name validation
-      const nameValidation = validateCardholderName(paymentForm.cardholderName);
-      if (!nameValidation.valid) {
-        errors.cardholderName = nameValidation.message;
-      }
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Simulate payment processing
+  // Process Razorpay payment
   const processPayment = async () => {
-    if (!validateForm()) {
+    if (!razorpayLoaded) {
+      alert('Payment system not loaded. Please refresh the page.');
+      return;
+    }
+
+    if (!user) {
+      alert('Please login to continue with payment');
       return;
     }
 
@@ -284,77 +132,115 @@ const Payment = () => {
     setPaymentStatus(PAYMENT_STATUS.PROCESSING);
 
     try {
-      // Simulate payment processing delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const amount = Math.round((bookingData.total || bookingData.totalAmount || 0) * 100); // Amount in paise
 
-      // Simulate random success/failure (90% success rate for demo)
-      const isSuccess = Math.random() > 0.1;
+      const options = {
+        key: RAZORPAY_KEY_ID,
+        amount: amount,
+        currency: 'INR',
+        name: 'Studio 9',
+        description: `${bookingData.movie?.title || 'Movie'} - ${bookingData.seats.length} seat(s)`,
+        image: '/vite.svg',
+        order_id: '', // Will be generated from backend in production
+        handler: async function (response) {
+          console.log('Payment successful:', response);
 
-      if (isSuccess) {
-        const transactionId = `TXN${Date.now()}${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+          // Payment successful
+          const transactionId = response.razorpay_payment_id;
 
-        // If booking has backend ID, confirm with backend
-        if (bookingData.bookingId) {
           try {
-            console.log(
-              "💳 Confirming booking with backend:",
-              bookingData.bookingId,
-              "Transaction:",
-              transactionId
-            );
-            const confirmedBooking = await confirmBooking(bookingData.bookingId, transactionId);
-            console.log("✅ Booking confirmed with backend:", confirmedBooking);
+            // Confirm booking with backend
+            if (bookingData.bookingId) {
+              const confirmedBooking = await confirmBooking(bookingData.bookingId, transactionId);
+              console.log('✅ Booking confirmed:', confirmedBooking);
+            }
+
+            setPaymentStatus(PAYMENT_STATUS.SUCCESS);
+
+            // Store successful booking
+            const completedBooking = {
+              ...bookingData,
+              paymentStatus: PAYMENT_STATUS.SUCCESS,
+              transactionId,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+              completedAt: new Date().toISOString(),
+            };
+
+            const existingBookings = JSON.parse(localStorage.getItem("bookingHistory") || "[]");
+            existingBookings.push(completedBooking);
+            localStorage.setItem("bookingHistory", JSON.stringify(existingBookings));
+            localStorage.removeItem("currentBooking");
+
+            setTimeout(() => {
+              navigate("/confirmation", { state: { booking: completedBooking } });
+            }, 1500);
           } catch (error) {
-            console.error("❌ Failed to confirm booking with backend:", error);
-            // Continue anyway for demo purposes
+            console.error('Failed to confirm booking:', error);
+            setPaymentStatus(PAYMENT_STATUS.FAILED);
+            setIsProcessing(false);
           }
-        } else {
-          console.warn("⚠️  No bookingId found, skipping backend confirmation");
+        },
+        prefill: {
+          name: user.name || '',
+          email: user.email || '',
+          contact: user.phone || ''
+        },
+        notes: {
+          booking_id: bookingData.bookingId || '',
+          movie: bookingData.movie?.title || '',
+          seats: Array.isArray(bookingData.seats)
+            ? bookingData.seats.map(s => typeof s === 'string' ? s : s.seatId).join(', ')
+            : '',
+          date: bookingData.date,
+          showtime: bookingData.showtime?.time || bookingData.showtime,
+          theater: 'Studio 9'
+        },
+        theme: {
+          color: '#dc2626' // cinema-red - this colors the Razorpay modal buttons and branding
+        },
+        modal: {
+          ondismiss: function() {
+            console.log('Payment cancelled by user');
+            setPaymentStatus(PAYMENT_STATUS.PENDING);
+            setIsProcessing(false);
+          },
+          confirm_close: true, // Ask confirmation before closing
+          escape: true, // Allow escape key to close
+          animation: true, // Enable smooth animations
+          backdropclose: false // Don't close on backdrop click
         }
+      };
 
-        setPaymentStatus(PAYMENT_STATUS.SUCCESS);
+      const razorpay = new window.Razorpay(options);
 
-        // Store successful booking
-        const completedBooking = {
-          ...bookingData,
-          paymentStatus: PAYMENT_STATUS.SUCCESS,
-          transactionId,
-          completedAt: new Date().toISOString(),
-        };
-
-        // Add to booking history
-        const existingBookings = JSON.parse(
-          localStorage.getItem("bookingHistory") || "[]",
-        );
-        existingBookings.push(completedBooking);
-        localStorage.setItem(
-          "bookingHistory",
-          JSON.stringify(existingBookings),
-        );
-
-        // Clear current booking
-        localStorage.removeItem("currentBooking");
-
-        // Redirect to confirmation after 2 seconds
-        setTimeout(() => {
-          navigate("/confirmation", {
-            state: { booking: completedBooking },
-          });
-        }, 2000);
-      } else {
+      razorpay.on('payment.failed', function (response) {
+        console.error('Payment failed:', response.error);
         setPaymentStatus(PAYMENT_STATUS.FAILED);
-      }
-    } catch {
+        setIsProcessing(false);
+        alert(`Payment failed: ${response.error.description}`);
+      });
+
+      razorpay.open();
+    } catch (error) {
+      console.error('Payment error:', error);
       setPaymentStatus(PAYMENT_STATUS.FAILED);
-    } finally {
       setIsProcessing(false);
+      alert('Payment initiation failed. Please try again.');
     }
   };
 
+
   // Go back to booking
   const handleBack = () => {
-    if (bookingData) {
-      navigate(`/booking/${bookingData.movie.id}`);
+    if (bookingData?.movie) {
+      const movieId = bookingData.movie.id || bookingData.movie._id;
+      if (movieId) {
+        navigate(`/booking/${movieId}`);
+      } else {
+        navigate(-1);
+      }
     } else {
       navigate("/");
     }
@@ -363,7 +249,7 @@ const Payment = () => {
   // Retry payment
   const handleRetry = () => {
     setPaymentStatus(PAYMENT_STATUS.PENDING);
-    setFormErrors({});
+    setIsProcessing(false);
   };
 
   if (!bookingData) {
@@ -377,11 +263,19 @@ const Payment = () => {
     );
   }
 
-  const posterUrl = getImageUrl(
-    bookingData.movie?.poster_path || bookingData.movie?.posterPath,
-    "poster",
-    "small",
-  );
+  // Debug: Log booking data to see what we have
+  console.log('📋 Payment - Booking Data:', bookingData);
+  console.log('🎬 Payment - Movie Data:', bookingData.movie);
+
+  const posterUrl = bookingData.movie?.posterUrl || // Backend full URL
+    (bookingData.movie?.poster_path
+      ? getImageUrl(bookingData.movie.poster_path, "poster", "small")
+      : null) ||
+    (bookingData.movie?.posterPath
+      ? getImageUrl(bookingData.movie.posterPath, "poster", "small")
+      : null);
+
+  console.log('🖼️ Payment - Poster URL:', posterUrl);
 
   return (
     <div className="min-h-screen bg-base-900">
@@ -396,14 +290,29 @@ const Payment = () => {
             <span>Back to Booking</span>
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-cinema-red/10 border-2 border-cinema-red/30 flex items-center justify-center">
-              <Lock className="w-6 h-6 text-cinema-red" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-cinema-red/10 border-2 border-cinema-red/30 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-cinema-red" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-text">Complete Payment</h1>
+                <p className="text-sm text-text-muted">Secure payment processing</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-text">Complete Payment</h1>
-              <p className="text-sm text-text-muted">Secure payment processing</p>
-            </div>
+
+            {/* Timer Display */}
+            {timeRemaining && !lockExpired && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-light border border-surface-border">
+                <Clock className={`w-5 h-5 ${getTimeColor(timeRemaining)}`} />
+                <div className="text-right">
+                  <p className="text-xs text-text-muted">Time Left</p>
+                  <p className={`text-lg font-bold ${getTimeColor(timeRemaining)}`}>
+                    {formatTimeRemaining(timeRemaining)}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -412,6 +321,40 @@ const Payment = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Payment Form */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Timer Warning */}
+            {timeRemaining && timeRemaining <= 300000 && !lockExpired && ( // 5 minutes or less
+              <div className={`card border-2 flex items-start gap-3 ${
+                timeRemaining <= 120000 
+                  ? 'bg-danger/10 border-danger/30' 
+                  : 'bg-warning/10 border-warning/30'
+              }`}>
+                <Clock className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                  timeRemaining <= 120000 ? 'text-danger' : 'text-warning'
+                }`} />
+                <div>
+                  <h3 className={`font-semibold mb-1 ${
+                    timeRemaining <= 120000 ? 'text-danger' : 'text-warning'
+                  }`}>
+                    {timeRemaining <= 120000 ? '⚠️ Hurry! Time is running out!' : '⏰ Complete payment soon'}
+                  </h3>
+                  <p className="text-sm text-text-muted">
+                    Your seats will be released in {formatTimeRemaining(timeRemaining)} if payment is not completed.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Lock Expired Message */}
+            {lockExpired && (
+              <div className="card bg-danger/10 border-2 border-danger/30 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-danger mb-1">Seat Reservation Expired</h3>
+                  <p className="text-sm text-danger/80">Your selected seats have been released. Please select your seats again.</p>
+                </div>
+              </div>
+            )}
+
             {/* Payment Status */}
             {paymentStatus === PAYMENT_STATUS.PROCESSING && (
               <div className="card bg-cinema-blue/10 border-2 border-cinema-blue/30 flex items-start gap-3">
@@ -452,149 +395,33 @@ const Payment = () => {
                 <div className="card">
                   <h2 className="text-xl font-bold text-text mb-4 flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-cinema-red" />
-                    Payment Method
+                    Payment via Razorpay
                   </h2>
 
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3 p-4 rounded-lg border-2 border-cinema-red bg-cinema-red/5 cursor-pointer transition-all">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="card"
-                        checked={paymentMethod === "card"}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="text-cinema-red focus:ring-cinema-red w-5 h-5"
-                      />
-                      <CreditCard className="w-5 h-5 text-cinema-red" />
-                      <span className="font-semibold text-text">Credit/Debit Card</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Card Payment Form */}
-                {paymentMethod === "card" && (
-                  <div className="card">
-                    <h3 className="text-xl font-bold text-text mb-6">Card Details</h3>
-
-                    <div className="space-y-5">
-                      <div>
-                        <label
-                          htmlFor="cardNumber"
-                          className="block text-sm font-semibold text-text mb-2"
-                        >
-                          Card Number
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            id="cardNumber"
-                            name="cardNumber"
-                            value={paymentForm.cardNumber}
-                            onChange={handleInputChange}
-                            placeholder="1234 5678 9012 3456"
-                            className={`input-field pr-20 ${formErrors.cardNumber ? "border-red-500" : ""}`}
-                          />
-                          {cardType !== "Unknown" && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-primary-600 bg-primary-50 px-2 py-1 rounded">
-                              {cardType}
-                            </div>
-                          )}
+                  <div className="bg-surface-light/50 border border-surface-border rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <CreditCard className="w-6 h-6 text-cinema-red mt-1" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-text mb-2">All Payment Methods Supported</p>
+                        <div className="text-sm text-text-muted space-y-1">
+                          <p>✓ Credit & Debit Cards (Visa, Mastercard, Amex, etc.)</p>
+                          <p>✓ UPI (Google Pay, PhonePe, Paytm, etc.)</p>
+                          <p>✓ Net Banking (All major banks)</p>
+                          <p>✓ Digital Wallets (Paytm, PhonePe, etc.)</p>
                         </div>
-                        {formErrors.cardNumber && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {formErrors.cardNumber}
-                          </p>
-                        )}
-                        <p className="mt-1 text-xs text-primary-500">
-                          Test cards: 4532015112830366 (Visa) or
-                          5425233430109903 (Mastercard)
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label
-                            htmlFor="expiryDate"
-                            className="block text-sm font-medium text-primary-700 mb-2"
-                          >
-                            Expiry Date
-                          </label>
-                          <input
-                            type="text"
-                            id="expiryDate"
-                            name="expiryDate"
-                            value={paymentForm.expiryDate}
-                            onChange={handleInputChange}
-                            placeholder="MM/YY"
-                            className={`input-field ${formErrors.expiryDate ? "border-red-500" : ""}`}
-                          />
-                          {formErrors.expiryDate && (
-                            <p className="mt-1 text-sm text-red-600">
-                              {formErrors.expiryDate}
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="cvv"
-                            className="block text-sm font-medium text-primary-700 mb-2"
-                          >
-                            CVV
-                          </label>
-                          <input
-                            type="text"
-                            id="cvv"
-                            name="cvv"
-                            value={paymentForm.cvv}
-                            onChange={handleInputChange}
-                            placeholder={
-                              cardType === "American Express" ? "1234" : "123"
-                            }
-                            className={`input-field ${formErrors.cvv ? "border-red-500" : ""}`}
-                          />
-                          {formErrors.cvv && (
-                            <p className="mt-1 text-sm text-red-600">
-                              {formErrors.cvv}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor="cardholderName"
-                          className="block text-sm font-medium text-primary-700 mb-2"
-                        >
-                          Cardholder Name
-                        </label>
-                        <input
-                          type="text"
-                          id="cardholderName"
-                          name="cardholderName"
-                          value={paymentForm.cardholderName}
-                          onChange={handleInputChange}
-                          placeholder="John Doe"
-                          className={`input-field ${formErrors.cardholderName ? "border-red-500" : ""}`}
-                        />
-                        {formErrors.cardholderName && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {formErrors.cardholderName}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Security Notice */}
-                <div className="bg-primary-50 border border-primary-200 p-4 flex items-start space-x-3">
-                  <Lock className="w-5 h-5 text-primary-600 mt-0.5" />
-                  <div className="text-sm text-primary-700">
-                    <p className="font-medium mb-1">Your payment is secure</p>
-                    <p>
-                      All transactions are encrypted and processed securely. We
-                      never store your payment information.
+                <div className="bg-cinema-blue/10 border border-cinema-blue/30 p-4 rounded-lg flex items-start space-x-3">
+                  <Lock className="w-5 h-5 text-cinema-blue mt-0.5" />
+                  <div className="text-sm text-text">
+                    <p className="font-medium mb-1">🔒 Secure Payment via Razorpay</p>
+                    <p className="text-text-muted">
+                      All transactions are encrypted and processed securely through Razorpay.
+                      We never store your payment information.
                     </p>
                   </div>
                 </div>
@@ -674,15 +501,13 @@ const Payment = () => {
                 </span>
                 <span className="text-text font-medium">
                   {THEATER_CONFIG.currencySymbol}
-                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(
-                    2,
-                  )}
+                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted font-medium">Booking Fee</span>
                 <span className="text-text font-medium">
-                  {THEATER_CONFIG.currencySymbol}0.00
+                  {THEATER_CONFIG.currencySymbol}0
                 </span>
               </div>
               <div className="divider my-4"></div>
@@ -690,9 +515,7 @@ const Payment = () => {
                 <span className="text-text font-bold text-lg">Total</span>
                 <span className="text-cinema-gold font-bold text-2xl">
                   {THEATER_CONFIG.currencySymbol}
-                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(
-                    2,
-                  )}
+                  {(bookingData.total || bookingData.totalAmount || 0).toFixed(0)}
                 </span>
               </div>
             </div>
@@ -702,7 +525,7 @@ const Payment = () => {
               {paymentStatus === PAYMENT_STATUS.PENDING && (
                 <button
                   onClick={processPayment}
-                  disabled={isProcessing}
+                  disabled={isProcessing || !razorpayLoaded}
                   className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 py-4 text-base"
                 >
                   {isProcessing ? (
@@ -719,7 +542,7 @@ const Payment = () => {
                           bookingData.total ||
                           bookingData.totalAmount ||
                           0
-                        ).toFixed(2)}
+                        ).toFixed(0)}
                       </span>
                     </>
                   )}

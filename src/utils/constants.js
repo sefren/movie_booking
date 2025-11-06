@@ -5,9 +5,11 @@ export const THEATER_CONFIG = {
   rows: ["A", "B", "C", "D", "E", "F", "G", "H"],
   seatsPerRow: 12,
   aisleAfterSeat: 6, // Creates aisle after seat 6
-  pricePerSeat: 12.5,
-  currency: "USD",
-  currencySymbol: "$",
+  pricePerSeat: 1000, // ₹1000 per seat (approx $12.5 * 80)
+  currency: "INR",
+  currencySymbol: "₹",
+  name: "Studio 9",
+  location: "Downtown"
 };
 
 // Show times

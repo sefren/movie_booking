@@ -400,17 +400,31 @@ const Profile = () => {
                     <div className="flex flex-col sm:flex-row gap-4">
                       {/* Poster */}
                       <div className="flex-shrink-0">
-                        {booking.movieId?.posterPath ? (
+                        {(booking.movieId?.posterUrl || booking.movieId?.posterPath || booking.movie?.posterUrl || booking.movie?.poster_path) ? (
                           <img
-                            src={getImageUrl(booking.movieId.posterPath, "poster", "small")}
-                            alt={booking.movieId?.title}
+                            src={
+                              booking.movieId?.posterUrl ||
+                              booking.movie?.posterUrl ||
+                              getImageUrl(
+                                booking.movieId?.posterPath || booking.movie?.poster_path,
+                                "poster",
+                                "small"
+                              )
+                            }
+                            alt={booking.movieId?.title || booking.movie?.title}
                             className="w-16 h-24 object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }}
                           />
-                        ) : (
-                          <div className="w-16 h-24 flex items-center justify-center bg-surface-light rounded">
-                            <Ticket className="h-6 w-6 text-text-dim" />
-                          </div>
-                        )}
+                        ) : null}
+                        <div
+                          className="w-16 h-24 flex items-center justify-center bg-surface-light rounded"
+                          style={{ display: (booking.movieId?.posterUrl || booking.movieId?.posterPath || booking.movie?.posterUrl || booking.movie?.poster_path) ? 'none' : 'flex' }}
+                        >
+                          <Ticket className="h-6 w-6 text-text-dim" />
+                        </div>
                       </div>
 
                       {/* Details */}

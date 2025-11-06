@@ -252,7 +252,7 @@ async function seedScreens() {
 async function seedShowtimes(movies, screens) {
     const showtimes = [];
     const allTimes = ['10:00', '13:00', '16:00', '19:00', '22:00'];
-    const basePrice = 12.0;
+    const basePrice = 1000; // ₹1000 base price (approx $12 * 80)
 
     // Start from today at midnight
     const today = new Date();

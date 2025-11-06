@@ -152,7 +152,7 @@ const SeatGrid = ({
                             <span className="font-medium text-text">{selectedSeats.length}</span> seat{selectedSeats.length > 1 ? 's' : ''} selected
                         </p>
                         <p className="text-xl sm:text-2xl font-semibold text-text">
-                            {THEATER_CONFIG.currencySymbol}{(selectedSeats.length * THEATER_CONFIG.pricePerSeat).toFixed(2)}
+                            {THEATER_CONFIG.currencySymbol}{(selectedSeats.length * THEATER_CONFIG.pricePerSeat).toFixed(0)}
                         </p>
                     </div>
                     <p className="text-xs text-text-dim text-center sm:text-left">{selectedSeats.join(", ")}</p>

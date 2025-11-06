@@ -76,11 +76,12 @@ const Confirmation = () => {
     );
   }
 
-  const posterUrl = getImageUrl(
-    booking.movie?.poster_path || booking.movie?.posterPath,
-    "poster",
-    "medium",
-  );
+  const posterUrl = booking.movie?.posterUrl || // Backend full URL
+    getImageUrl(
+      booking.movie?.poster_path || booking.movie?.posterPath,
+      "poster",
+      "medium",
+    );
 
   return (
     <div className="min-h-screen bg-base-900">
@@ -201,18 +202,18 @@ const Confirmation = () => {
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex justify-between">
                     <span className="text-text-muted">Tickets ({booking.seats.length})</span>
-                    <span className="text-text">{THEATER_CONFIG.currencySymbol}{(booking.total || booking.totalAmount || 0).toFixed(2)}</span>
+                    <span className="text-text">{THEATER_CONFIG.currencySymbol}{(booking.total || booking.totalAmount || 0).toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-muted">Fee</span>
-                    <span className="text-text">{THEATER_CONFIG.currencySymbol}0.00</span>
+                    <span className="text-text">{THEATER_CONFIG.currencySymbol}0</span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-baseline pt-3 border-t border-surface-border/50">
                   <span className="text-text font-semibold">Total Paid</span>
                   <span className="text-text text-2xl font-semibold">
-                    {THEATER_CONFIG.currencySymbol}{(booking.total || booking.totalAmount || 0).toFixed(2)}
+                    {THEATER_CONFIG.currencySymbol}{(booking.total || booking.totalAmount || 0).toFixed(0)}
                   </span>
                 </div>
               </div>
