@@ -454,7 +454,7 @@ const Profile = () => {
                           </div>
                           <div>
                             <p className="text-xs text-text-dim">Total</p>
-                            <p className="text-text font-medium">${booking.totalAmount?.toFixed(2)}</p>
+                            <p className="text-text font-medium">₹{booking.totalAmount?.toFixed(2)}</p>
                           </div>
                         </div>
 
