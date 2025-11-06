@@ -18,13 +18,7 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    minify: 'esbuild', // Use esbuild instead of terser (faster and no extra dependency)
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
